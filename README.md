@@ -127,3 +127,31 @@ Untuk Checkpoint 1, deployment menampilkan Django rocket page.
 ## 9. Figma
 
 Figma: https://www.figma.com/design/dbY780FG3lgq1ffLdyuBm3/Untitled?node-id=0-1&p=f
+
+## 10. Arsitektur dan Alur Integrasi Sistem (Mobile App & Web Backend)
+
+Sistem **GreenLoop** mengusung arsitektur *Decoupled Client-Server* modern yang memisahkan secara tegas antara lapisan antarmuka pengguna seluler (*Flutter Mobile Client*) dan pusat pemrosesan data sisi peladen (*Django REST Framework Backend*). Komunikasi data antar-lapisan ini sepenuhnya dijalankan secara asinkron menggunakan protokol HTTP melalui standar *RESTful API*.
+
+Berikut adalah penjabaran mendalam mengenai alur teknis integrasi fungsional antara aplikasi seluler GreenLoop dan *web service* Django:
+
+### 1. Manajemen Sesi Pengguna & Autentikasi Lintas-Platform (Authentication & Session Persistence)
+* **Inisiasi Kredensial:** Ketika pengguna melakukan *login* melalui aplikasi mobile Flutter (modul *Authentication*), aplikasi mengirimkan paket data kredensial (nama pengguna dan kata sandi) via metode HTTP `POST` ke *endpoint* autentikasi Django (`/auth/login/`).
+* **Validasi & Penerbitan Sesi:** Sisi server Django memvalidasi integritas kredensial menggunakan sistem autentikasi bawaan berbasis ORM, lalu membalas dengan status sukses beserta kuki sesi terenkripsi (*session cookies*).
+* **Penyimpanan Lokal & Otomatisasi Permintaan:** Flutter memanfaatkan pustaka manajemen kuki lokal (`cookie_jar` / `pbp_django_auth`) untuk menyimpan sesi tersebut. Dengan demikian, setiap permintaan data berikutnya (*authenticated requests*) secara otomatis menyertakan kuki tanpa memerlukan proses masuk ulang di setiap perpindahan halaman seluler.
+
+### 2. Pengambilan Data Dinamis Asinkron (Data Fetching / GET Request)
+* **Permintaan Berbasis Asinkron:** Pada modul-modul yang membutuhkan data waktu nyata (*real-time*), seperti katalog produk e-commerce, daftar riwayat penjemputan mitra B2B, atau grafik statistik *Live Impact Dashboard*, aplikasi seluler mengirimkan permintaan HTTP `GET` ke *endpoint* spesifik Django (contoh: `/json/`, `/api/products/`, atau `/api/pickups/`).
+* **Serialisasi Data Sisi Server:** Di sisi peladen, Django memproses kueri pangkalan data PostgreSQL, mengambil objek model, lalu mentransformasikannya (*serialization*) ke dalam format baku **JSON** melalui modul `Django REST Framework (DRF)`.
+* **Rendering Reaktif di Seluler:** Data JSON mentah tersebut diterima oleh aplikasi Flutter, diurai (*parsed*) ke dalam model data Dart, lalu dirender secara reaktif ke antarmuka pengguna seluler menggunakan widget asinkron berkinerja tinggi (seperti `FutureBuilder` dan `ListView.builder`).
+
+### 3. Pengiriman Data Lapangan & Aksi Transaksional (Data Submission / POST Request)
+* **Pengemasan Payload Form:** Ketika pengguna melakukan aksi operasional di lapangan—seperti Mitra B2B menjadwalkan penjemputan melalui *Smart Pick-Up Scheduler*, Kurir memperbarui berat aktual limbah (kg), atau Konsumen melakukan *checkout* belanjaan—aplikasi Flutter mengemas data input pengguna ke dalam format JSON *payload*.
+* **Pemrosesan & Validasi Bisnis:** Data dikirimkan melalui HTTP `POST` ke *endpoint* pemrosesan backend Django. Server kemudian melakukan validasi data (termasuk verifikasi kualitas foto limbah dan perhitungan otomatis algoritma *Waste-to-Points*), menyimpan entri baru ke dalam pangkalan data terpusat, dan mengeksekusi mutasi poin.
+* **Umpan Balik Instan (Instant State Update):** Django mengembalikan kode respons berhasil (`200 OK` / `201 Created`), yang secara langsung memicu pembaruan status tampilan (*state synchronization*) pada layar perangkat pengguna seketika itu juga.
+
+### 4. Sinergi Layanan Eksternal & Integrasi API Pihak Ketiga
+Untuk menunjang fitur cerdas di lapangan, sistem ini mengintegrasikan berbagai layanan eksternal terpilih:
+* **OpenStreetMap, Nominatim, & OSRM API:** Dikelola untuk merender peta interaktif, melakukan geocoding titik koordinat mitra, dan menghitung rute perjalanan kurir paling optimal.
+* **Open-Meteo API:** Menyediakan data prakiraan cuaca guna mendukung efisiensi rute kurir lapangan.
+* **Midtrans & RajaOngkir API:** Diintegrasikan di sisi backend untuk menangani kalkulasi ongkos kirim logistik serta mengamankan pemrosesan transaksi pembayaran digital instan (QRIS, *Virtual Account*, dan *E-Wallet*).
+
