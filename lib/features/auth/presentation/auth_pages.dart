@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/network/api_client.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
+import '../../home/presentation/role_navigation_page.dart';
+import '../services/auth_service.dart';
 
 enum PublicRegistrationRole { consumer, mitra, courier }
 
@@ -23,8 +26,44 @@ extension PublicRegistrationRoleLabel on PublicRegistrationRole {
 // WELCOME / ONBOARDING - M01
 // =====================================================
 
-class WelcomePage extends StatelessWidget {
-  const WelcomePage({super.key});
+class WelcomePage extends StatefulWidget {
+  const WelcomePage({
+    this.authService,
+    this.skipSessionCheck = false,
+    super.key,
+  });
+
+  final AuthService? authService;
+  final bool skipSessionCheck;
+
+  @override
+  State<WelcomePage> createState() => _WelcomePageState();
+}
+
+class _WelcomePageState extends State<WelcomePage> {
+  AuthService get _effectiveAuth => widget.authService ?? defaultAuthService;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.skipSessionCheck) {
+      _restoreSession();
+    }
+  }
+
+  Future<void> _restoreSession() async {
+    final profile = await _effectiveAuth.checkSession();
+    if (profile != null && mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => RoleNavigationPage(
+            role: profile.role,
+            authService: _effectiveAuth,
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -120,7 +159,6 @@ class WelcomePage extends StatelessWidget {
                     const SizedBox(height: 16),
 
                     // FIGMA PREVIEW METRICS
-                    // Ganti dengan data aktual API sebelum rilis.
                     const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -165,7 +203,8 @@ class WelcomePage extends StatelessWidget {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                            builder: (_) => const RegisterPage(
+                            builder: (_) => RegisterPage(
+                              authService: _effectiveAuth,
                               initialRole: PublicRegistrationRole.mitra,
                             ),
                           ),
@@ -183,7 +222,9 @@ class WelcomePage extends StatelessWidget {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                            builder: (_) => const LoginPage(),
+                            builder: (_) => LoginPage(
+                              authService: _effectiveAuth,
+                            ),
                           ),
                         );
                       },
@@ -262,7 +303,9 @@ extension on _LoginRole {
 // =====================================================
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({this.authService, super.key});
+
+  final AuthService? authService;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -270,26 +313,76 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
+  final _username = TextEditingController();
   final _password = TextEditingController();
 
   bool _passwordVisible = false;
   bool _rememberMe = true;
+  bool _isLoading = false;
+  String? _errorMessage;
 
   _LoginRole _selectedRole = _LoginRole.mitra;
 
+  AuthService get _effectiveAuth => widget.authService ?? defaultAuthService;
+
   @override
   void dispose() {
-    _email.dispose();
+    _username.dispose();
     _password.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
     if (_formKey.currentState!.validate()) {
-      showApiNotConnected(context);
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
+        final profile = await _effectiveAuth.login(
+          username: _username.text.trim(),
+          password: _password.text,
+        );
+
+        if (!mounted) return;
+
+        // Use the actual role returned by the backend to navigate to dashboard
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) => RoleNavigationPage(
+              role: profile.role,
+              authService: _effectiveAuth,
+            ),
+          ),
+          (route) => false,
+        );
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = e.message;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        final msg = 'Terjadi kesalahan saat masuk: $e';
+        setState(() {
+          _errorMessage = msg;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
@@ -333,7 +426,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 20),
 
-                // ROLE SELECTOR
+                // ROLE SELECTOR (Preserved from Figma UI design; backend determines actual role)
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
@@ -364,11 +457,6 @@ class _LoginPageState extends State<LoginPage> {
                             ? Colors.white
                             : Colors.transparent;
                       }),
-                      // Figma: tab aktif 13 / SemiBold / hijau #1E5B2E,
-                      // tab tidak aktif 13 / Medium / abu-abu muted.
-                      // fontFamily wajib ditulis di sini karena textStyle
-                      // milik ButtonStyle menggantikan (bukan menggabung)
-                      // style bawaan dari tema.
                       foregroundColor: WidgetStateProperty.resolveWith((
                         states,
                       ) {
@@ -396,35 +484,65 @@ class _LoginPageState extends State<LoginPage> {
 
                 const SizedBox(height: 19),
 
+                if (_errorMessage != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFBE8E7),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFFD9534F).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Color(0xFFD9534F),
+                          size: 19,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Color(0xFFD9534F),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
                 Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _FieldLabel('Email'),
+                      const _FieldLabel('Username'),
 
                       TextFormField(
                         key: const Key('login-email'),
-                        controller: _email,
-                        keyboardType: TextInputType.emailAddress,
-                        // Figma: isi input 14 / Medium
+                        controller: _username,
+                        keyboardType: TextInputType.text,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
                         decoration: const InputDecoration(
-                          hintText: 'Masukkan email',
-                          prefixIcon: Icon(Icons.mail_outline),
+                          hintText: 'Masukkan username',
+                          prefixIcon: Icon(Icons.person_outline),
                         ),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'Email wajib diisi.';
+                            return 'Username wajib diisi.';
                           }
-
-                          if (!value.contains('@') || !value.contains('.')) {
-                            return 'Masukkan email yang valid.';
-                          }
-
                           return null;
                         },
                       ),
@@ -519,7 +637,11 @@ class _LoginPageState extends State<LoginPage> {
 
                       const SizedBox(height: 12),
 
-                      GreenLoopButton(label: 'Masuk', onPressed: _submit),
+                      GreenLoopButton(
+                        label: 'Masuk',
+                        isLoading: _isLoading,
+                        onPressed: _isLoading ? null : _submit,
+                      ),
                     ],
                   ),
                 ),
@@ -551,7 +673,8 @@ class _LoginPageState extends State<LoginPage> {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) => const RegisterPage(
+                        builder: (_) => RegisterPage(
+                          authService: _effectiveAuth,
                           initialRole: PublicRegistrationRole.mitra,
                         ),
                       ),
@@ -584,7 +707,6 @@ class _FieldLabel extends StatelessWidget {
     padding: const EdgeInsets.only(bottom: 7),
     child: Text(
       text,
-      // Figma: label field 13 / SemiBold
       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
     ),
   );
@@ -604,10 +726,12 @@ class _RegisterField {
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({
-    super.key,
+    this.authService,
     this.initialRole = PublicRegistrationRole.consumer,
+    super.key,
   });
 
+  final AuthService? authService;
   final PublicRegistrationRole initialRole;
 
   @override
@@ -641,6 +765,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
   late PublicRegistrationRole _role;
   bool _passwordVisible = false;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  AuthService get _effectiveAuth => widget.authService ?? defaultAuthService;
 
   @override
   void initState() {
@@ -682,11 +810,99 @@ class _RegisterPageState extends State<RegisterPage> {
     ],
   };
 
-  void _submit() {
+  String _normalizeBusinessType(String val) {
+    final lower = val.toLowerCase().trim();
+    if (lower.contains('kafe') || lower == 'cafe') return 'cafe';
+    if (lower.contains('restoran') || lower == 'restaurant') return 'restaurant';
+    if (lower.contains('hotel')) return 'hotel';
+    return lower;
+  }
+
+  String _normalizeVehicleType(String val) {
+    final lower = val.toLowerCase().trim();
+    if (lower.contains('motor')) return 'motor';
+    if (lower.contains('mobil')) return 'mobil';
+    return lower;
+  }
+
+  Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
     if (_formKey.currentState!.validate()) {
-      showApiNotConnected(context);
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+
+      try {
+        final payload = <String, dynamic>{
+          'username': _controllers['username']!.text.trim(),
+          'email': _controllers['email']!.text.trim(),
+          'password1': _controllers['password1']!.text,
+          'password2': _controllers['password2']!.text,
+          'role': _role.backendValue,
+        };
+
+        if (_role == PublicRegistrationRole.mitra) {
+          payload['business_name'] = _controllers['business_name']!.text.trim();
+          payload['business_type'] =
+              _normalizeBusinessType(_controllers['business_type']!.text);
+          payload['pic_name'] = _controllers['pic_name']!.text.trim();
+          payload['phone_number'] = _controllers['phone_number']!.text.trim();
+          payload['provinsi'] = _controllers['provinsi']!.text.trim().isNotEmpty
+              ? _controllers['provinsi']!.text.trim()
+              : 'Jawa Barat';
+          payload['kota'] = _controllers['kota']!.text.trim().isNotEmpty
+              ? _controllers['kota']!.text.trim()
+              : 'Depok';
+          payload['kecamatan'] = _controllers['kecamatan']!.text.trim();
+          payload['kelurahan'] = _controllers['kelurahan']!.text.trim();
+          payload['address_detail'] = _controllers['address_detail']!.text.trim();
+        } else if (_role == PublicRegistrationRole.courier) {
+          payload['full_name'] = _controllers['full_name']!.text.trim();
+          payload['plate_number'] =
+              _controllers['plate_number']!.text.trim().toUpperCase();
+          payload['vehicle_type'] =
+              _normalizeVehicleType(_controllers['vehicle_type']!.text);
+        }
+
+        final profile = await _effectiveAuth.register(data: payload);
+
+        if (!mounted) return;
+
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute<void>(
+            builder: (_) => RoleNavigationPage(
+              role: profile.role,
+              authService: _effectiveAuth,
+            ),
+          ),
+          (route) => false,
+        );
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        setState(() {
+          _errorMessage = e.message;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        final msg = 'Terjadi kesalahan saat mendaftar: $e';
+        setState(() {
+          _errorMessage = msg;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
   }
 
@@ -732,6 +948,42 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
 
               const SizedBox(height: 18),
+
+              if (_errorMessage != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFBE8E7),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: const Color(0xFFD9534F).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Color(0xFFD9534F),
+                        size: 19,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: Color(0xFFD9534F),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               FormFieldTile(
                 controller: _controllers['username']!,
@@ -821,18 +1073,20 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                 ),
 
-              GreenLoopButton(label: 'Daftar', onPressed: _submit),
+              GreenLoopButton(
+                label: 'Daftar',
+                isLoading: _isLoading,
+                onPressed: _isLoading ? null : _submit,
+              ),
 
               const SizedBox(height: 12),
-
-              const AuthNotice(
-                text: 'Form ini masih berupa UI dan validasi lokal. Akun belum dibuat karena API belum dihubungkan.',
-              ),
 
               TextButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+                    MaterialPageRoute<void>(
+                      builder: (_) => LoginPage(authService: _effectiveAuth),
+                    ),
                   );
                 },
                 child: const Text('Sudah punya akun? Masuk'),
