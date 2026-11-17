@@ -9,6 +9,7 @@ class GreenLoopButton extends StatelessWidget {
     this.secondary = false,
     this.light = false,
     this.icon,
+    this.isLoading = false,
     super.key,
   });
 
@@ -17,6 +18,7 @@ class GreenLoopButton extends StatelessWidget {
   final bool secondary;
   final bool light;
   final IconData? icon;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -30,24 +32,35 @@ class GreenLoopButton extends StatelessWidget {
     final primaryLabel = light ? GreenLoopColors.deepForest : Colors.white;
     const secondaryLabel = GreenLoopColors.circleGreen;
 
-    final content = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 8)],
-        // Figma: teks tombol 15 / SemiBold
-        Text(
-          label,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-        ),
-      ],
-    );
+    final effectiveOnPressed = isLoading ? null : onPressed;
+
+    final content = isLoading
+        ? SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.2,
+              color: secondary ? secondaryLabel : primaryLabel,
+            ),
+          )
+        : Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 8)],
+              // Figma: teks tombol 15 / SemiBold
+              Text(
+                label,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+            ],
+          );
 
     return SizedBox(
       width: double.infinity,
       height: 52,
       child: secondary
           ? OutlinedButton(
-              onPressed: onPressed,
+              onPressed: effectiveOnPressed,
               style: OutlinedButton.styleFrom(
                 foregroundColor: secondaryLabel,
                 backgroundColor: Colors.white,
@@ -59,7 +72,7 @@ class GreenLoopButton extends StatelessWidget {
               child: content,
             )
           : FilledButton(
-              onPressed: onPressed,
+              onPressed: effectiveOnPressed,
               style: FilledButton.styleFrom(
                 foregroundColor: primaryLabel,
                 backgroundColor: light

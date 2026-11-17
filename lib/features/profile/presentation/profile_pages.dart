@@ -1,32 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/network/api_client.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
+import '../../auth/data/auth_models.dart';
+import '../../auth/presentation/auth_pages.dart' show WelcomePage;
+import '../../auth/services/auth_service.dart';
 
-enum UserRole { consumer, mitra, courier, admin, unknown }
-
-extension UserRoleData on UserRole {
-  String get label => switch (this) {
-    UserRole.consumer => 'Consumer',
-    UserRole.mitra => 'Mitra',
-    UserRole.courier => 'Courier',
-    UserRole.admin => 'Admin',
-    UserRole.unknown => 'Pengguna',
-  };
-
-  static UserRole fromBackend(String value) => switch (value.toLowerCase()) {
-    'consumer' => UserRole.consumer,
-    'mitra' => UserRole.mitra,
-    'courier' => UserRole.courier,
-    'admin' => UserRole.admin,
-    _ => UserRole.unknown,
-  };
-}
+export '../../auth/data/auth_models.dart' show UserRole, UserRoleData;
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({required this.role, super.key});
+  const ProfilePage({
+    required this.role,
+    this.authService,
+    super.key,
+  });
 
   final UserRole role;
+  final AuthService? authService;
 
   void _notConnected(BuildContext context, String feature) {
     ScaffoldMessenger.of(
@@ -36,7 +27,22 @@ class ProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveAuth = authService ?? defaultAuthService;
+    final currentUser = effectiveAuth.currentUser;
+    final userAccount = currentUser?.user;
     final isMitra = role == UserRole.mitra;
+
+    final displayName = userAccount != null && userAccount.displayName.isNotEmpty
+        ? userAccount.displayName
+        : (isMitra ? 'Profil Mitra' : 'Profil ${role.label}');
+
+    final displayEmail = userAccount != null && userAccount.email.isNotEmpty
+        ? userAccount.email
+        : 'Data akun akan tampil setelah API tersambung';
+
+    final avatarLetter = userAccount != null && userAccount.displayName.isNotEmpty
+        ? userAccount.displayName.substring(0, 1).toUpperCase()
+        : (isMitra ? 'M' : role.label.substring(0, 1));
 
     final menu = isMitra
         ? const [
@@ -110,7 +116,10 @@ class ProfilePage extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => EditProfilePage(role: role),
+                  builder: (_) => EditProfilePage(
+                    role: role,
+                    authService: effectiveAuth,
+                  ),
                 ),
               );
             },
@@ -143,7 +152,7 @@ class ProfilePage extends StatelessWidget {
                   radius: 30,
                   backgroundColor: GreenLoopColors.forest2,
                   child: Text(
-                    isMitra ? 'M' : role.label.substring(0, 1),
+                    avatarLetter,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -153,17 +162,17 @@ class ProfilePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 9),
                 Text(
-                  isMitra ? 'Profil Mitra' : 'Profil ${role.label}',
+                  displayName,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 3),
-                const Text(
-                  'Data akun akan tampil setelah API tersambung',
+                Text(
+                  displayEmail,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: GreenLoopColors.textMuted,
                     fontSize: 12,
                   ),
@@ -203,7 +212,7 @@ class ProfilePage extends StatelessWidget {
             ),
           ),
 
-          // PICKUP ADDRESS
+          // PICKUP ADDRESS (MITRA)
           if (isMitra) ...[
             const SizedBox(height: 10),
             Container(
@@ -213,9 +222,9 @@ class ProfilePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(color: GreenLoopColors.border),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  CircleAvatar(
+                  const CircleAvatar(
                     radius: 18,
                     backgroundColor: GreenLoopColors.leaf,
                     child: Icon(
@@ -224,22 +233,25 @@ class ProfilePage extends StatelessWidget {
                       color: GreenLoopColors.forest2,
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Alamat penjemputan',
-                          style: TextStyle(
+                          currentUser?.mitraProfile?.businessName ??
+                              'Alamat penjemputan',
+                          style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 3),
+                        const SizedBox(height: 3),
                         Text(
-                          'Alamat usaha akan tampil setelah profil dimuat.',
-                          style: TextStyle(
+                          currentUser?.mitraProfile?.courierNotes ??
+                              currentUser?.mitraProfile?.phoneNumber ??
+                              'Alamat usaha akan tampil setelah profil dimuat.',
+                          style: const TextStyle(
                             fontSize: 12,
                             height: 1.4,
                             color: GreenLoopColors.textMuted,
@@ -282,7 +294,6 @@ class ProfilePage extends StatelessWidget {
                             color: GreenLoopColors.forest2,
                           ),
                         ),
-                        // Figma: judul menu 14 / Medium
                         title: Text(
                           menu[i].title,
                           style: const TextStyle(
@@ -291,7 +302,6 @@ class ProfilePage extends StatelessWidget {
                             fontWeight: FontWeight.w500,
                           ),
                         ),
-                        // Figma: teks sekunder 12 / Regular / muted
                         subtitle: Text(
                           menu[i].subtitle,
                           style: const TextStyle(
@@ -308,7 +318,10 @@ class ProfilePage extends StatelessWidget {
                           if (isMitra && menu[i].title == 'Data Usaha') {
                             Navigator.of(context).push(
                               MaterialPageRoute<void>(
-                                builder: (_) => EditProfilePage(role: role),
+                                builder: (_) => EditProfilePage(
+                                  role: role,
+                                  authService: effectiveAuth,
+                                ),
                               ),
                             );
                           } else {
@@ -334,7 +347,48 @@ class ProfilePage extends StatelessWidget {
           SizedBox(
             height: 47,
             child: OutlinedButton.icon(
-              onPressed: () => _notConnected(context, 'Logout'),
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Keluar dari Akun'),
+                    content: const Text(
+                      'Apakah kamu yakin ingin keluar dari GreenLoop?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Batal'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFFD9534F),
+                        ),
+                        child: const Text('Keluar'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm != true || !context.mounted) return;
+
+                try {
+                  await effectiveAuth.logout();
+                  if (!context.mounted) return;
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const WelcomePage(),
+                    ),
+                    (route) => false,
+                  );
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Gagal logout: $e')),
+                  );
+                }
+              },
               icon: const Icon(Icons.logout, size: 18),
               label: const Text(
                 'Keluar',
@@ -394,9 +448,14 @@ class _ProfileMenuData {
 // EDIT PROFILE
 
 class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({required this.role, super.key});
+  const EditProfilePage({
+    required this.role,
+    this.authService,
+    super.key,
+  });
 
   final UserRole role;
+  final AuthService? authService;
 
   @override
   State<EditProfilePage> createState() => _EditProfilePageState();
@@ -404,6 +463,7 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
+  bool _isSaving = false;
 
   final Map<String, TextEditingController> _fields = {
     for (final key in [
@@ -423,12 +483,122 @@ class _EditProfilePageState extends State<EditProfilePage> {
       key: TextEditingController(),
   };
 
+  AuthService get _effectiveAuth => widget.authService ?? defaultAuthService;
+
+  @override
+  void initState() {
+    super.initState();
+    final current = _effectiveAuth.currentUser;
+    if (current != null) {
+      _fields['username']!.text = current.user.username;
+      _fields['email']!.text = current.user.email;
+      _fields['first_name']!.text = current.user.firstName;
+      _fields['last_name']!.text = current.user.lastName;
+
+      if (current.mitraProfile != null) {
+        final m = current.mitraProfile!;
+        _fields['business_name']!.text = m.businessName ?? '';
+        _fields['business_type']!.text = m.businessType ?? '';
+        _fields['pic_name']!.text = m.picName ?? '';
+        _fields['phone_number']!.text = m.phoneNumber ?? '';
+        _fields['operational_hours']!.text = m.operationalHours ?? '';
+        _fields['courier_notes']!.text = m.courierNotes ?? '';
+      }
+
+      if (current.courierProfile != null) {
+        final c = current.courierProfile!;
+        _fields['plate_number']!.text = c.plateNumber ?? '';
+        _fields['vehicle_type']!.text = c.vehicleType ?? '';
+      }
+    }
+  }
+
   @override
   void dispose() {
     for (final controller in _fields.values) {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _save() async {
+    FocusScope.of(context).unfocus();
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isSaving = true;
+      });
+
+      try {
+        final payload = <String, dynamic>{
+          'username': _fields['username']!.text.trim(),
+          'email': _fields['email']!.text.trim(),
+          'first_name': _fields['first_name']!.text.trim(),
+          'last_name': _fields['last_name']!.text.trim(),
+        };
+
+        if (widget.role == UserRole.mitra) {
+          for (final key in [
+            'business_name',
+            'pic_name',
+            'phone_number',
+            'operational_hours',
+            'courier_notes',
+          ]) {
+            payload[key] = _fields[key]!.text.trim();
+          }
+
+          final bType = _fields['business_type']!.text.trim();
+          if (bType.isNotEmpty) {
+            final lower = bType.toLowerCase();
+            if (lower.contains('kafe') || lower.contains('coffee') || lower == 'cafe') {
+              payload['business_type'] = 'Kafe / Coffee Shop';
+            } else if (lower.contains('restoran') || lower == 'restaurant') {
+              payload['business_type'] = 'Restoran';
+            } else if (lower.contains('hotel')) {
+              payload['business_type'] = 'Hotel';
+            } else {
+              payload['business_type'] = bType;
+            }
+          }
+        } else if (widget.role == UserRole.courier) {
+          payload['plate_number'] =
+              _fields['plate_number']!.text.trim().toUpperCase();
+
+          final vType = _fields['vehicle_type']!.text.trim().toLowerCase();
+          if (vType.contains('motor')) {
+            payload['vehicle_type'] = 'motor_box';
+          } else if (vType.contains('mobil') || vType.contains('pickup')) {
+            payload['vehicle_type'] = 'pickup_bak';
+          } else {
+            payload['vehicle_type'] = vType;
+          }
+        }
+
+        await _effectiveAuth.updateProfile(payload);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profil berhasil diperbarui.')),
+        );
+        Navigator.of(context).pop();
+      } on ApiException catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memperbarui profil: $e')),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
+      }
+    }
   }
 
   @override
@@ -513,12 +683,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
             const SizedBox(height: 14),
             GreenLoopButton(
               label: 'Simpan perubahan',
-              onPressed: () {
-                FocusScope.of(context).unfocus();
-                if (_formKey.currentState!.validate()) {
-                  showApiNotConnected(context);
-                }
-              },
+              isLoading: _isSaving,
+              onPressed: _isSaving ? null : _save,
             ),
           ],
         ),
