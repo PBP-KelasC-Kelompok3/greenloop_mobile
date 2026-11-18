@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
+import '../../home/presentation/demo_login.dart';
 import '../../home/presentation/role_navigation_page.dart';
 import '../services/auth_service.dart';
 
@@ -688,6 +689,9 @@ class _LoginPageState extends State<LoginPage> {
                   icon: Icons.location_on_outlined,
                   text: 'Layanan penjemputan saat ini khusus wilayah Kota Depok, Jawa Barat.',
                 ),
+
+                const SizedBox(height: 8),
+                const Center(child: DemoLoginButton()),
               ],
             ),
           ),

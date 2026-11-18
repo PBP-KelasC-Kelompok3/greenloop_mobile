@@ -1,113 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/widgets/gl_components.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
 import '../../auth/services/auth_service.dart';
 import '../../profile/presentation/profile_pages.dart';
 
-/// Shell for authenticated users with role-specific bottom navigation tabs.
+/// Tab bar mana yang dipakai tiap role (komponen "Mobile / Tab Bar ..." di
+/// Figma).
+GLTabRole tabRoleFor(UserRole role) => switch (role) {
+      UserRole.mitra => GLTabRole.mitra,
+      UserRole.courier => GLTabRole.kurir,
+      UserRole.admin => GLTabRole.admin,
+      UserRole.consumer || UserRole.unknown => GLTabRole.konsumen,
+    };
+
+/// Shell untuk user yang sudah login, dengan tab bar bawah sesuai role.
 class RoleNavigationPage extends StatefulWidget {
   const RoleNavigationPage({
     required this.role,
     this.authService,
+    this.initialIndex = 0,
     super.key,
   });
 
   final UserRole role;
   final AuthService? authService;
+  final int initialIndex;
 
   @override
   State<RoleNavigationPage> createState() => _RoleNavigationPageState();
 }
 
 class _RoleNavigationPageState extends State<RoleNavigationPage> {
-  int _selectedIndex = 0;
+  late int _selectedIndex = widget.initialIndex;
 
-  List<_NavTab> get _tabs {
-    switch (widget.role) {
-      case UserRole.consumer:
-      case UserRole.mitra:
-        return const [
-          _NavTab('Beranda', Icons.home_outlined, Icons.home),
-          _NavTab(
-            'Jemput',
-            Icons.local_shipping_outlined,
-            Icons.local_shipping,
-          ),
-          _NavTab('Reward', Icons.card_giftcard_outlined, Icons.card_giftcard),
-          _NavTab('Belanja', Icons.shopping_cart_outlined, Icons.shopping_cart),
-          _NavTab('Profil', Icons.person_outline, Icons.person),
-        ];
+  GLTabRole get _tabRole => tabRoleFor(widget.role);
 
-      case UserRole.courier:
-        return const [
-          _NavTab('Beranda', Icons.home_outlined, Icons.home),
-          _NavTab(
-            'Jemput',
-            Icons.local_shipping_outlined,
-            Icons.local_shipping,
-          ),
-          _NavTab('Profil', Icons.person_outline, Icons.person),
-        ];
+  List<GLTabItem> get _tabs => glTabsByRole[_tabRole]!;
 
-      case UserRole.admin:
-      case UserRole.unknown:
-        return const [
-          _NavTab('Beranda', Icons.home_outlined, Icons.home),
-          _NavTab('Profil', Icons.person_outline, Icons.person),
-        ];
-    }
-  }
+  void _selectTab(int index) => setState(() => _selectedIndex = index);
 
   Widget _selectedPage() {
-    final selectedLabel = _tabs[_selectedIndex].label;
+    final label = _tabs[_selectedIndex].label;
 
-    if (selectedLabel == 'Profil') {
-      return ProfilePage(
-        role: widget.role,
-        authService: widget.authService,
-      );
+    switch (label) {
+      case 'Profil':
+        return ProfilePage(role: widget.role, authService: widget.authService);
+      case 'Beranda':
+      case 'Dashboard':
+        return AuthenticatedHomePage(role: widget.role);
+      default:
+        return ModulePlaceholderPage(
+          title: label,
+          module: _moduleFor(label),
+          icon: _tabs[_selectedIndex].icon,
+        );
     }
-
-    if (selectedLabel == 'Beranda') {
-      return AuthenticatedHomePage(role: widget.role);
-    }
-
-    return _ModulePlaceholder(title: selectedLabel);
   }
+
+  /// Nama modul (dan pemiliknya) untuk tab yang belum punya halaman.
+  String _moduleFor(String label) => switch (label) {
+        'Jemput' || 'Pikap' => 'Mitra & Pickup Scheduling',
+        'Reward' => 'Waste & Reward System',
+        'Belanja' || 'Katalog' || 'Keranjang' || 'Pesanan' || 'Produk' =>
+          'E-Commerce',
+        'Rute' || 'Rekap' || 'Kurir' => 'Courier & Route',
+        _ => 'GreenLoop',
+      };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: GreenLoopColors.surface,
+      backgroundColor: GreenLoopColors.background,
       body: SafeArea(bottom: false, child: _selectedPage()),
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: GreenLoopColors.border)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 68,
-            child: Row(
-              children: [
-                for (var index = 0; index < _tabs.length; index++)
-                  Expanded(
-                    child: _BottomNavItem(
-                      tab: _tabs[index],
-                      selected: _selectedIndex == index,
-                      onTap: () {
-                        setState(() {
-                          _selectedIndex = index;
-                        });
-                      },
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+      bottomNavigationBar: GLTabBar(
+        role: _tabRole,
+        currentIndex: _selectedIndex,
+        onTap: _selectTab,
       ),
     );
   }
@@ -178,110 +149,54 @@ class AuthenticatedHomePage extends StatelessWidget {
   }
 }
 
-class _NavTab {
-  const _NavTab(this.label, this.icon, this.selectedIcon);
-
-  final String label;
-  final IconData icon;
-  final IconData selectedIcon;
-}
-
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.tab,
-    required this.selected,
-    required this.onTap,
+/// Halaman sementara untuk tab yang layarnya belum dibangun.
+class ModulePlaceholderPage extends StatelessWidget {
+  const ModulePlaceholderPage({
+    required this.title,
+    required this.module,
+    this.icon = LucideIcons.hourglass,
+    super.key,
   });
 
-  final _NavTab tab;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              width: 46,
-              height: 29,
-              decoration: BoxDecoration(
-                color: selected ? GreenLoopColors.mint : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Icon(
-                selected ? tab.selectedIcon : tab.icon,
-                size: 21,
-                color: selected
-                    ? GreenLoopColors.forest2
-                    : GreenLoopColors.muted,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              tab.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                color: selected
-                    ? GreenLoopColors.forest2
-                    : GreenLoopColors.muted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ModulePlaceholder extends StatelessWidget {
-  const _ModulePlaceholder({required this.title});
-
   final String title;
+  final String module;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: GreenLoopColors.surface,
-      appBar: AppBar(title: Text(title)),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.hourglass_empty,
-                size: 40,
-                color: GreenLoopColors.forest2,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '$title belum tersedia',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GLScreenHeader(title: title, subtitle: 'Modul $module'),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: GLCard(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                GLIconTile(icon: icon, size: 56, iconSize: 26),
+                const SizedBox(height: 12),
+                Text(
+                  'Halaman $title sedang dibangun',
+                  textAlign: TextAlign.center,
+                  style: GreenLoopTypography.style(15, FontWeight.w700),
                 ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Modul ini akan diintegrasikan dengan pekerjaan '
-                'anggota tim terkait.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: GreenLoopColors.muted, fontSize: 12),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  'Tampilan mengikuti Figma GreenLoop Mobile dan akan '
+                  'dihubungkan ke API oleh pemilik modul.',
+                  textAlign: TextAlign.center,
+                  style: GreenLoopTypography.style(
+                    12,
+                    FontWeight.w400,
+                    color: GreenLoopColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
