@@ -28,6 +28,20 @@ class GreenLoopColors {
   // lain yang masih memakai token lama tidak ikut berubah.
   static const textInk = Color(0xFF16281B);
   static const textMuted = Color(0xFF5E6E62);
+
+  // Token warna dari variabel Figma "GreenLoop Mobile" (color/*).
+  static const green900 = Color(0xFF123A20);
+  static const green700 = Color(0xFF1E5B2E);
+  static const green100 = Color(0xFFE7F3E1);
+  static const lime = Color(0xFFB5E07A);
+  static const background = Color(0xFFF6F8F3);
+  static const cardBorder = Color(0xFFDCE5D7);
+  static const amber = Color(0xFFE89B2A);
+  static const amber100 = Color(0xFFFDF1DC);
+  static const red = Color(0xFFD9534F);
+  static const red100 = Color(0xFFFBE6E5);
+  static const blue = Color(0xFF3B82C4);
+  static const blue100 = Color(0xFFE3EFFA);
 }
 
 /// Typography GreenLoop.
@@ -193,4 +207,4 @@ class GreenLoopTheme {
       ),
     );
   }
-}
+}
