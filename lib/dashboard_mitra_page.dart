@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:greenloop_mobile/mitra_form_page.dart';
+
+import '../../../shared/theme/greenloop_theme.dart';
+import '../mitra_form_page.dart';
 
 class DashboardMitraPage extends StatelessWidget {
   const DashboardMitraPage({super.key});
@@ -7,14 +9,14 @@ class DashboardMitraPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: GreenLoopColors.surface,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.black87),
         title: Row(
           children: const [
-            Icon(Icons.all_inclusive, color: Color(0xFF198754), size: 28), // Diperbaiki dari Icons.infinity
+            Icon(Icons.all_inclusive, color: Color(0xFF198754), size: 28),
             SizedBox(width: 8),
             Text(
               'GREENLOOP',
@@ -92,14 +94,14 @@ class DashboardMitraPage extends StatelessWidget {
                 child: Text('MENU', style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
               ),
               ListTile(
-                leading: const Icon(Icons.grid_view, color: Color(0xFF198754)), // Diperbaiki dari grid_fill
+                leading: const Icon(Icons.grid_view, color: Color(0xFF198754)),
                 title: const Text('Dashboard', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF198754))),
                 selected: true,
                 selectedTileColor: Colors.green.shade50,
                 onTap: () => Navigator.pop(context),
               ),
               ListTile(
-                leading: const Icon(Icons.calendar_month, color: Colors.grey), // Diperbaiki dari calendar_plus
+                leading: const Icon(Icons.calendar_month, color: Colors.grey),
                 title: const Text('Ajukan Penjemputan'),
                 onTap: () {
                   Navigator.pop(context);
@@ -150,7 +152,7 @@ class DashboardMitraPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // Diperbaiki dari between
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
@@ -205,18 +207,18 @@ class DashboardMitraPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween, // Diperbaiki dari between
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: isDark ? Colors.white.withOpacity(0.2) : Colors.white, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.2) : Colors.white, borderRadius: BorderRadius.circular(8)),
                 child: Icon(icon, size: 18, color: textColor),
               ),
               if (!isDark)
