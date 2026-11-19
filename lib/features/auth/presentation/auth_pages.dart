@@ -22,6 +22,23 @@ extension PublicRegistrationRoleLabel on PublicRegistrationRole {
   };
 }
 
+Future<void> _logoutToLogin(
+  AuthService authService,
+  NavigatorState navigator,
+) async {
+  try {
+    await authService.logout();
+  } catch (_) {
+    // Still let the user return to the login page when the API is unavailable.
+  }
+  navigator.pushAndRemoveUntil(
+    MaterialPageRoute<void>(
+      builder: (_) => LoginPage(authService: authService),
+    ),
+    (route) => false,
+  );
+}
+
 // =====================================================
 // WELCOME / ONBOARDING - M01
 // =====================================================
@@ -54,11 +71,13 @@ class _WelcomePageState extends State<WelcomePage> {
   Future<void> _restoreSession() async {
     final profile = await _effectiveAuth.checkSession();
     if (profile != null && mounted) {
-      Navigator.of(context).pushReplacement(
+      final navigator = Navigator.of(context);
+      navigator.pushReplacement(
         MaterialPageRoute<void>(
           builder: (_) => RoleNavigationPage(
             role: profile.role,
             authService: _effectiveAuth,
+            onLogout: () => _logoutToLogin(_effectiveAuth, navigator),
           ),
         ),
       );
@@ -288,13 +307,14 @@ class _PageDot extends StatelessWidget {
 // LOGIN ROLE SELECTOR
 // =====================================================
 
-enum _LoginRole { mitra, courier, consumer }
+enum _LoginRole { mitra, courier, consumer, admin }
 
 extension on _LoginRole {
   String get label => switch (this) {
     _LoginRole.mitra => 'Mitra B2B',
     _LoginRole.courier => 'Kurir',
     _LoginRole.consumer => 'Konsumen',
+    _LoginRole.admin => 'Admin',
   };
 }
 
@@ -350,11 +370,13 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
 
         // Use the actual role returned by the backend to navigate to dashboard
-        Navigator.of(context).pushAndRemoveUntil(
+        final navigator = Navigator.of(context);
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute<void>(
             builder: (_) => RoleNavigationPage(
               role: profile.role,
               authService: _effectiveAuth,
+              onLogout: () => _logoutToLogin(_effectiveAuth, navigator),
             ),
           ),
           (route) => false,
@@ -870,11 +892,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
         if (!mounted) return;
 
-        Navigator.of(context).pushAndRemoveUntil(
+        final navigator = Navigator.of(context);
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute<void>(
             builder: (_) => RoleNavigationPage(
               role: profile.role,
               authService: _effectiveAuth,
+              onLogout: () => _logoutToLogin(_effectiveAuth, navigator),
             ),
           ),
           (route) => false,

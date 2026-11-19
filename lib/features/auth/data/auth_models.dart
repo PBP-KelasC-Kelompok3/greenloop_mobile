@@ -188,29 +188,35 @@ class CourierProfileData {
   const CourierProfileData({
     this.plateNumber,
     this.vehicleType,
+    this.isApproved = false,
   });
 
   final String? plateNumber;
   final String? vehicleType;
+  final bool isApproved;
 
   factory CourierProfileData.fromJson(Map<String, dynamic> json) =>
       CourierProfileData(
         plateNumber: json['plate_number'] as String?,
         vehicleType: json['vehicle_type'] as String?,
+        isApproved: json['is_approved'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
         'plate_number': ?plateNumber,
         'vehicle_type': ?vehicleType,
+        'is_approved': isApproved,
       };
 
   CourierProfileData copyWith({
     String? plateNumber,
     String? vehicleType,
+    bool? isApproved,
   }) =>
       CourierProfileData(
         plateNumber: plateNumber ?? this.plateNumber,
         vehicleType: vehicleType ?? this.vehicleType,
+        isApproved: isApproved ?? this.isApproved,
       );
 }
 

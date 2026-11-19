@@ -198,7 +198,15 @@ class ApiClient {
     };
 
     final payload = body is String || body == null ? body as String? : jsonEncode(body);
-    final response = await _client.post(uri, headers: mergedHeaders, body: payload);
+    var response = await _client.post(uri, headers: mergedHeaders, body: payload);
+    if (requireCsrf && response.statusCode == 403) {
+      token = await fetchCsrfToken(force: true);
+      response = await _client.post(
+        uri,
+        headers: {...mergedHeaders, 'X-CSRFToken': token},
+        body: payload,
+      );
+    }
 
     _extractCsrfFromResponse(response);
     return response;
