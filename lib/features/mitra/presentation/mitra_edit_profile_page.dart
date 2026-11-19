@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../auth/data/auth_models.dart';
 import '../../auth/services/auth_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../../shared/theme/greenloop_theme.dart';
+import 'mitra_location_picker.dart';
 
 class MitraEditProfilePage extends StatefulWidget {
   const MitraEditProfilePage({this.authService, super.key});
@@ -38,12 +40,25 @@ class _MitraEditProfilePageState extends State<MitraEditProfilePage> {
   late final AuthService _auth;
   String? _businessType;
   bool _saving = false;
+  bool _locationEditable = true;
+  bool _locationWithinBoundary = false;
+  bool _locationAddressResolved = false;
+  double? _latitude;
+  double? _longitude;
 
   @override
   void initState() {
     super.initState();
     _auth = widget.authService ?? defaultAuthService;
     final profile = _auth.currentUser?.mitraProfile;
+    _latitude = profile?.latitude;
+    _longitude = profile?.longitude;
+    _locationWithinBoundary = _latitude != null && _longitude != null;
+    _locationAddressResolved = _latitude != null &&
+        _longitude != null &&
+        profile?.addressDetail?.trim().isNotEmpty == true;
+    _locationEditable = !(profile?.locationLocked == true &&
+        _latitude != null && _longitude != null);
     _businessName.text = profile?.businessName ?? '';
     _businessType = _normalizeBusinessType(profile?.businessType);
     _picName.text = profile?.picName ?? '';
@@ -86,6 +101,11 @@ class _MitraEditProfilePageState extends State<MitraEditProfilePage> {
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (_latitude == null || _longitude == null ||
+        !_locationWithinBoundary || !_locationAddressResolved) {
+      _showMessage('Pilih titik peta dan tunggu alamatnya terisi otomatis sebelum menyimpan.');
+      return;
+    }
     setState(() => _saving = true);
     try {
       final payload = <String, dynamic>{
@@ -100,6 +120,9 @@ class _MitraEditProfilePageState extends State<MitraEditProfilePage> {
         'kelurahan': _village.text.trim(),
         'address_detail': _address.text.trim(),
         'courier_notes': _courierNotes.text.trim(),
+        'latitude': _latitude,
+        'longitude': _longitude,
+        'location_locked': true,
       };
       await _auth.updateProfile(payload);
       if (!mounted) return;
@@ -116,6 +139,29 @@ class _MitraEditProfilePageState extends State<MitraEditProfilePage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  void _onLocationChanged(MitraLocationSelection selection) {
+    setState(() {
+      _latitude = selection.point.latitude;
+      _longitude = selection.point.longitude;
+      _locationAddressResolved = selection.address?.trim().isNotEmpty == true;
+      if (selection.province?.isNotEmpty == true) _province.text = selection.province!;
+      if (selection.city?.isNotEmpty == true) _city.text = selection.city!;
+      if (selection.district?.isNotEmpty == true) _district.text = selection.district!;
+      if (selection.village?.isNotEmpty == true) _village.text = selection.village!;
+      if (selection.address?.isNotEmpty == true) _address.text = selection.address!;
+    });
+  }
+
+  void _onLocationValidityChanged(bool isValid) {
+    if (_locationWithinBoundary == isValid) return;
+    setState(() => _locationWithinBoundary = isValid);
+  }
+
+  void _onLocationNeedsResolution() {
+    if (!_locationAddressResolved) return;
+    setState(() => _locationAddressResolved = false);
   }
 
   void _showMessage(String message) {
@@ -159,7 +205,10 @@ class _MitraEditProfilePageState extends State<MitraEditProfilePage> {
                   hint: const Text('Pilih jenis usaha'),
                   items: [
                     for (final type in _businessTypes)
-                      DropdownMenuItem(value: type, child: Text(type)),
+                      DropdownMenuItem(
+                        value: type,
+                        child: Text(type, style: const TextStyle(fontSize: 12)),
+                      ),
                   ],
                   onChanged: (value) => setState(() => _businessType = value),
                 ),
@@ -176,15 +225,41 @@ class _MitraEditProfilePageState extends State<MitraEditProfilePage> {
             const SizedBox(height: 8),
             _FormCard(
               children: [
-                _MobileInput(label: 'Provinsi', controller: _province),
+                Row(children: [
+                  const Expanded(child: Text('Titik Penjemputan', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+                  if (!_locationEditable)
+                    TextButton.icon(
+                      onPressed: () => setState(() => _locationEditable = true),
+                      icon: const Icon(Icons.edit_location_alt_outlined, size: 17),
+                      label: const Text('Ubah titik'),
+                    )
+                  else
+                    const Chip(avatar: Icon(Icons.lock_open, size: 15), label: Text('Atur titik')),
+                ]),
+                const SizedBox(height: 8),
+                MitraLocationPicker(
+                  initialPoint: _latitude != null && _longitude != null
+                      ? LatLng(_latitude!, _longitude!)
+                      : depokMapCenter,
+                  editable: _locationEditable,
+                  onPointChanged: _onLocationChanged,
+                  onLocationValidityChanged: _onLocationValidityChanged,
+                  onLocationNeedsResolution: _onLocationNeedsResolution,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            _FormCard(
+              children: [
+                _MobileInput(label: 'Provinsi', controller: _province, readOnly: true),
                 const SizedBox(height: 12),
-                _MobileInput(label: 'Kota / Kabupaten', controller: _city),
+                _MobileInput(label: 'Kota / Kabupaten', controller: _city, readOnly: true),
                 const SizedBox(height: 12),
-                _MobileInput(label: 'Kecamatan', controller: _district),
+                _MobileInput(label: 'Kecamatan', controller: _district, readOnly: true),
                 const SizedBox(height: 12),
-                _MobileInput(label: 'Kelurahan', controller: _village),
+                _MobileInput(label: 'Kelurahan', controller: _village, readOnly: true),
                 const SizedBox(height: 12),
-                _MobileInput(label: 'Alamat lengkap', controller: _address, maxLines: 2),
+                _MobileInput(label: 'Alamat lengkap', controller: _address, maxLines: 3, readOnly: true),
                 const SizedBox(height: 12),
                 _MobileInput(label: 'Catatan untuk kurir', controller: _courierNotes, hint: 'Patokan atau akses menuju lokasi', maxLines: 2),
               ],
@@ -260,16 +335,18 @@ class _FormCard extends StatelessWidget {
 }
 
 class _MobileInput extends StatelessWidget {
-  const _MobileInput({required this.label, required this.controller, this.hint, this.keyboardType, this.maxLines = 1, this.required = false});
+  const _MobileInput({required this.label, required this.controller, this.hint, this.keyboardType, this.maxLines = 1, this.required = false, this.readOnly = false});
   final String label;
   final TextEditingController controller;
   final String? hint;
   final TextInputType? keyboardType;
   final int maxLines;
   final bool required;
+  final bool readOnly;
   @override
   Widget build(BuildContext context) => TextFormField(
     controller: controller,
+    readOnly: readOnly,
     keyboardType: keyboardType,
     maxLines: maxLines,
     validator: required ? (value) => value == null || value.trim().isEmpty ? '$label wajib diisi.' : null : null,

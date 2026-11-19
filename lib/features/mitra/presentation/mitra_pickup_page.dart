@@ -3,12 +3,17 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/network/api_client.dart';
 import '../../../shared/theme/greenloop_theme.dart';
+import '../../auth/services/auth_service.dart';
+import '../data/mitra_pickup_service.dart';
 
 class MitraPickupPage extends StatefulWidget {
-  const MitraPickupPage({this.onBack, super.key});
+  const MitraPickupPage({this.authService, this.onBack, this.onSubmitted, super.key});
 
+  final AuthService? authService;
   final VoidCallback? onBack;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   State<MitraPickupPage> createState() => _MitraPickupPageState();
@@ -31,12 +36,20 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
   final _weightController = TextEditingController();
   final _notesController = TextEditingController();
   final _imagePicker = ImagePicker();
+  late final MitraPickupService _pickupService;
   String? _wasteType;
   DateTime? _date;
   String? _slot;
   String? _vehicle;
   XFile? _photo;
   Uint8List? _photoBytes;
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pickupService = MitraPickupService(widget.authService ?? defaultAuthService);
+  }
 
   double get _weight => double.tryParse(_weightController.text) ?? 0;
   String get _recommendedVehicle => _weight <= 20 ? 'Motor Box' : 'Pickup Bak';
@@ -115,7 +128,8 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
     });
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_submitting) return;
     if (_date == null ||
         _slot == null ||
         _wasteType == null ||
@@ -131,9 +145,33 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
       return;
     }
 
-    // The provided Django template posts to its server view. This mobile
-    // project does not include the pickup API endpoint or its URL.
-    _showMessage('Form lengkap, tetapi endpoint API penjemputan mobile belum tersedia.');
+    setState(() => _submitting = true);
+    try {
+      final photoBytes = _photoBytes ?? await _photo!.readAsBytes();
+      final pickup = await _pickupService.create(
+        fields: {
+          'waste_type': _wasteTypeCode(_wasteType!),
+          'estimated_weight': _weight.toString(),
+          'pickup_date': _formatDateForApi(_date!),
+          'pickup_time_slot': '$_slot WIB',
+          'armada': _vehicle!,
+          'notes': _notesController.text.trim(),
+        },
+        photoBytes: photoBytes,
+        filename: _photo!.name,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Pengajuan ${pickup.code} berhasil dikirim.')),
+      );
+      widget.onSubmitted?.call(pickup.code);
+    } on ApiException catch (error) {
+      if (mounted) _showMessage(error.message);
+    } catch (error) {
+      if (mounted) _showMessage('Pengajuan gagal dikirim: $error');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   void _showMessage(String message) {
@@ -150,11 +188,7 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
       leading: IconButton(
         onPressed: widget.onBack ?? () => Navigator.of(context).maybePop(),
         icon: const Icon(Icons.chevron_left),
-        style: IconButton.styleFrom(
-          backgroundColor: Colors.white,
-          side: const BorderSide(color: GreenLoopColors.border),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
-        ),
+        style: IconButton.styleFrom(foregroundColor: GreenLoopColors.ink),
       ),
       titleSpacing: 8,
       title: const Column(
@@ -176,7 +210,7 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 7,
           crossAxisSpacing: 7,
-          childAspectRatio: 3.9,
+          childAspectRatio: 3.35,
           children: [
             for (final type in _wasteTypes)
               _ChoiceTile(
@@ -207,12 +241,14 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
                     hintText: 'Masukkan berat',
+                    hintStyle: TextStyle(fontSize: 12, color: GreenLoopColors.muted),
                     suffixText: 'kg',
+                    suffixStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     border: InputBorder.none,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -225,7 +261,7 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
                   _date == null ? 'Pilih tanggal' : _formatDate(_date!),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -244,7 +280,7 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 7,
           crossAxisSpacing: 7,
-          childAspectRatio: 3.65,
+          childAspectRatio: 3.1,
           children: [
             for (final slot in _slots)
               _SlotTile(
@@ -262,7 +298,7 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
             if (_weight > 0 && _weight <= 120)
               Text(
                 'Rekomendasi: $_recommendedVehicle',
-                style: const TextStyle(fontSize: 9, color: GreenLoopColors.circleGreen, fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: 10, color: GreenLoopColors.circleGreen, fontWeight: FontWeight.w600),
               ),
           ],
         ),
@@ -317,7 +353,7 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
             fillColor: Colors.white,
             isDense: true,
           ),
-          style: const TextStyle(fontSize: 11),
+          style: const TextStyle(fontSize: 13),
         ),
         const SizedBox(height: 8),
       ],
@@ -333,9 +369,11 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
         child: SizedBox(
           height: 48,
           child: FilledButton.icon(
-            onPressed: _submit,
+            onPressed: _submitting ? null : _submit,
             icon: const Icon(Icons.send_outlined, size: 16),
-            label: const Text('Kirim untuk Verifikasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            label: _submitting
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('Kirim untuk Verifikasi', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
             style: FilledButton.styleFrom(
               backgroundColor: GreenLoopColors.circleGreen,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -353,6 +391,16 @@ class _MitraPickupPageState extends State<MitraPickupPage> {
     return Icons.restaurant_outlined;
   }
 
+  static String _wasteTypeCode(String type) => switch (type) {
+    'Sisa Makanan / Dapur' => 'ORGANIC_FOOD',
+    'Ampas Kopi' => 'COFFEE_GROUNDS',
+    'Sisa Buah & Sayur' => 'FRUIT_VEG',
+    _ => 'MIXED_ORGANIC',
+  };
+
+  static String _formatDateForApi(DateTime date) =>
+      '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
   static String _formatDate(DateTime date) {
     const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -364,7 +412,7 @@ class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.text);
   final String text;
   @override
-  Widget build(BuildContext context) => Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: GreenLoopColors.ink));
+  Widget build(BuildContext context) => Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: GreenLoopColors.ink));
 }
 
 class _ChoiceTile extends StatelessWidget {
@@ -384,8 +432,8 @@ class _ChoiceTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7),
-        child: Row(children: [Icon(icon, size: 14, color: GreenLoopColors.muted), const SizedBox(width: 5), Expanded(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w600)))]),
+        padding: const EdgeInsets.symmetric(horizontal: 9),
+        child: Row(children: [Icon(icon, size: 16, color: GreenLoopColors.muted), const SizedBox(width: 7), Expanded(child: Text(text, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, height: 1.15, fontWeight: FontWeight.w600)))]),
       ),
     ),
   );
@@ -403,7 +451,7 @@ class _ValueTile extends StatelessWidget {
     child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
-      child: SizedBox(height: 42, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Row(children: [Icon(icon, size: 15, color: GreenLoopColors.muted), const SizedBox(width: 6), Expanded(child: child)]))),
+      child: SizedBox(height: 46, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Row(children: [Icon(icon, size: 17, color: GreenLoopColors.muted), const SizedBox(width: 7), Expanded(child: child)]))),
     ),
   );
 }
@@ -421,7 +469,7 @@ class _SlotTile extends StatelessWidget {
     child: InkWell(
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(10),
-      child: SizedBox(height: 36, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.access_time, size: 12, color: enabled ? GreenLoopColors.muted : Colors.grey), const SizedBox(width: 4), Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 8, color: enabled ? GreenLoopColors.ink : Colors.grey, fontWeight: FontWeight.w600)))])),
+      child: SizedBox(height: 42, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.access_time, size: 14, color: GreenLoopColors.muted), const SizedBox(width: 5), Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: enabled ? GreenLoopColors.ink : GreenLoopColors.muted, fontWeight: FontWeight.w600)))])),
     ),
   );
 }
@@ -441,7 +489,7 @@ class _VehicleTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(11),
-        child: SizedBox(height: 53, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 16, color: GreenLoopColors.circleGreen), const SizedBox(width: 5), Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700)), Text(limit, style: const TextStyle(fontSize: 7, color: GreenLoopColors.muted))])])),
+        child: SizedBox(height: 58, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 18, color: GreenLoopColors.circleGreen), const SizedBox(width: 7), Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)), Text(limit, style: const TextStyle(fontSize: 10, color: GreenLoopColors.muted))])])),
       ),
     ),
   );
@@ -469,8 +517,8 @@ class _PhotoPicker extends StatelessWidget {
                   Icon(Icons.camera_alt_outlined, size: 19, color: GreenLoopColors.circleGreen),
                   SizedBox(width: 8),
                   Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('Upload foto limbah', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
-                    Text('Wajib · JPG/PNG · maks. 5 MB', style: TextStyle(fontSize: 8, color: GreenLoopColors.muted)),
+                    Text('Upload foto limbah', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    Text('Wajib · JPG/PNG · maks. 5 MB', style: TextStyle(fontSize: 10, color: GreenLoopColors.muted)),
                   ]),
                 ])
               : Stack(

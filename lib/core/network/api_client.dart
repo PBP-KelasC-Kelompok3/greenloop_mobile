@@ -204,6 +204,43 @@ class ApiClient {
     return response;
   }
 
+  /// Send a multipart POST containing one upload and CSRF protection.
+  Future<http.Response> postMultipart(
+    String path, {
+    required Map<String, String> fields,
+    required String fileField,
+    required List<int> fileBytes,
+    required String filename,
+    bool requireCsrf = true,
+  }) async {
+    final uri = _buildUri(path);
+    var token = requireCsrf ? await fetchCsrfToken() : null;
+
+    Future<http.Response> sendRequest() async {
+      final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll({
+          'Accept': 'application/json',
+          if (token != null) 'X-CSRFToken': token!,
+        })
+        ..fields.addAll(fields)
+        ..files.add(http.MultipartFile.fromBytes(
+          fileField,
+          fileBytes,
+          filename: filename,
+        ));
+      final streamedResponse = await _client.send(request);
+      return http.Response.fromStream(streamedResponse);
+    }
+
+    var response = await sendRequest();
+    if (requireCsrf && response.statusCode == 403) {
+      token = await fetchCsrfToken(force: true);
+      response = await sendRequest();
+    }
+    _extractCsrfFromResponse(response);
+    return response;
+  }
+
   /// Perform a PATCH request with CSRF token and JSON headers.
   Future<http.Response> patch(
     String path, {
@@ -226,7 +263,17 @@ class ApiClient {
     };
 
     final payload = body is String || body == null ? body as String? : jsonEncode(body);
-    final response = await _client.patch(uri, headers: mergedHeaders, body: payload);
+    var response = await _client.patch(uri, headers: mergedHeaders, body: payload);
+    if (requireCsrf && response.statusCode == 403) {
+      // A 403 can happen when Django rotated the cookie after an existing
+      // session was established. Refresh once and retry with the matching token.
+      token = await fetchCsrfToken(force: true);
+      response = await _client.patch(
+        uri,
+        headers: {...mergedHeaders, 'X-CSRFToken': token},
+        body: payload,
+      );
+    }
 
     _extractCsrfFromResponse(response);
     return response;

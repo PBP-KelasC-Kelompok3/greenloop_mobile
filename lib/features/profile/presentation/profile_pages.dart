@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
@@ -7,6 +8,8 @@ import '../../auth/data/auth_models.dart';
 import '../../auth/presentation/auth_pages.dart' show WelcomePage;
 import '../../auth/services/auth_service.dart';
 import '../../mitra/presentation/mitra_edit_profile_page.dart';
+import '../../mitra/presentation/mitra_faq_page.dart';
+import '../../mitra/presentation/mitra_location_picker.dart';
 
 export '../../auth/data/auth_models.dart' show UserRole, UserRoleData;
 
@@ -29,7 +32,9 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveAuth = authService ?? defaultAuthService;
-    final currentUser = effectiveAuth.currentUser;
+    return ValueListenableBuilder<UserProfile?>(
+      valueListenable: effectiveAuth.currentUserNotifier,
+      builder: (context, currentUser, _) {
     final userAccount = currentUser?.user;
     final isMitra = role == UserRole.mitra;
 
@@ -137,11 +142,7 @@ class ProfilePage extends StatelessWidget {
             },
             icon: const Icon(Icons.edit_outlined),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: GreenLoopColors.border),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(11),
-              ),
+              foregroundColor: GreenLoopColors.circleGreen,
             ),
           ),
           const SizedBox(width: 12),
@@ -234,49 +235,12 @@ class ProfilePage extends StatelessWidget {
           // PICKUP ADDRESS (MITRA)
           if (isMitra) ...[
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(
-                color: GreenLoopColors.mint,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: GreenLoopColors.border),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 18,
-                    backgroundColor: GreenLoopColors.leaf,
-                    child: Icon(
-                      Icons.location_on_outlined,
-                      size: 20,
-                      color: GreenLoopColors.forest2,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Alamat Penjemputan',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          _mitraAddress(currentUser?.mitraProfile),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            height: 1.4,
-                            color: GreenLoopColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            _MitraAddressCard(
+              profile: currentUser?.mitraProfile,
+              onEdit: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => MitraEditProfilePage(authService: effectiveAuth),
+                ),
               ),
             ),
           ],
@@ -334,10 +298,16 @@ class ProfilePage extends StatelessWidget {
                           if (isMitra && menu[i].title == 'Data Usaha') {
                             Navigator.of(context).push(
                               MaterialPageRoute<void>(
-                                builder: (_) => EditProfilePage(
-                                  role: role,
+                                builder: (_) => MitraEditProfilePage(
                                   authService: effectiveAuth,
                                 ),
+                              ),
+                            );
+                          } else if (isMitra &&
+                              menu[i].title == 'Bantuan & FAQ') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const MitraFaqPage(),
                               ),
                             );
                           } else {
@@ -422,6 +392,8 @@ class ProfilePage extends StatelessWidget {
           ),
         ],
       ),
+      );
+      },
     );
   }
 }
@@ -438,6 +410,61 @@ String _mitraAddress(MitraProfileData? profile) {
       .where((part) => part?.trim().isNotEmpty == true)
       .join(', ');
   return address.isEmpty ? 'Alamat usaha belum tersedia.' : address;
+}
+
+class _MitraAddressCard extends StatelessWidget {
+  const _MitraAddressCard({required this.profile, required this.onEdit});
+
+  final MitraProfileData? profile;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPoint = profile?.latitude != null && profile?.longitude != null;
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: GreenLoopColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const CircleAvatar(
+            radius: 18,
+            backgroundColor: GreenLoopColors.mint,
+            child: Icon(Icons.location_on_outlined, size: 20, color: GreenLoopColors.forest2),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Alamat Penjemputan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 3),
+            Text(_mitraAddress(profile), style: const TextStyle(fontSize: 12, height: 1.4, color: GreenLoopColors.textMuted)),
+          ])),
+          Icon(profile?.locationLocked == true ? Icons.lock_outline : Icons.lock_open, size: 17, color: GreenLoopColors.circleGreen),
+        ]),
+        const SizedBox(height: 10),
+        if (hasPoint)
+          MitraLocationPicker(
+            initialPoint: LatLng(profile!.latitude!, profile!.longitude!),
+            editable: false,
+            onPointChanged: (_) {},
+            onLocationValidityChanged: (_) {},
+            onLocationNeedsResolution: () {},
+          )
+        else
+          Container(
+            height: 90,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: GreenLoopColors.mint, borderRadius: BorderRadius.circular(12)),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Titik peta belum ditentukan', style: TextStyle(fontSize: 12, color: GreenLoopColors.textMuted)),
+              TextButton.icon(onPressed: onEdit, icon: const Icon(Icons.map_outlined, size: 17), label: const Text('Atur lokasi usaha')),
+            ]),
+          ),
+      ]),
+    );
+  }
 }
 
 class _ProfileMetric extends StatelessWidget {

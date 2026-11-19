@@ -68,7 +68,11 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
   Widget _selectedPage() {
     if (widget.role == UserRole.mitra && _showMitraHistory) {
       return MitraPickupHistoryPage(
-        onBack: () => setState(() => _showMitraHistory = false),
+        authService: widget.authService,
+        onBack: () => setState(() {
+          _showMitraHistory = false;
+          if (_selectedIndex == 1) _selectedIndex = 0;
+        }),
         onCreatePickup: () => setState(() {
           _showMitraHistory = false;
           _selectedIndex = 1;
@@ -94,7 +98,9 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
 
     if (widget.role == UserRole.mitra && selectedLabel == 'Jemput') {
       return MitraPickupPage(
+        authService: widget.authService,
         onBack: () => setState(() => _selectedIndex = 0),
+        onSubmitted: (_) => setState(() => _showMitraHistory = true),
       );
     }
 

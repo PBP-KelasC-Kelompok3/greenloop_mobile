@@ -94,6 +94,9 @@ class MitraProfileData {
     this.kecamatan,
     this.kelurahan,
     this.addressDetail,
+    this.latitude,
+    this.longitude,
+    this.locationLocked = false,
   });
 
   final String? businessName;
@@ -107,6 +110,9 @@ class MitraProfileData {
   final String? kecamatan;
   final String? kelurahan;
   final String? addressDetail;
+  final double? latitude;
+  final double? longitude;
+  final bool locationLocked;
 
   factory MitraProfileData.fromJson(Map<String, dynamic> json) =>
       MitraProfileData(
@@ -121,6 +127,9 @@ class MitraProfileData {
         kecamatan: json['kecamatan'] as String?,
         kelurahan: json['kelurahan'] as String?,
         addressDetail: json['address_detail'] as String?,
+        latitude: (json['latitude'] as num?)?.toDouble(),
+        longitude: (json['longitude'] as num?)?.toDouble(),
+        locationLocked: json['location_locked'] as bool? ?? false,
       );
 
   Map<String, dynamic> toJson() => {
@@ -135,6 +144,9 @@ class MitraProfileData {
         'kecamatan': ?kecamatan,
         'kelurahan': ?kelurahan,
         'address_detail': ?addressDetail,
+        'latitude': ?latitude,
+        'longitude': ?longitude,
+        'location_locked': locationLocked,
       };
 
   MitraProfileData copyWith({
@@ -149,6 +161,9 @@ class MitraProfileData {
     String? kecamatan,
     String? kelurahan,
     String? addressDetail,
+    double? latitude,
+    double? longitude,
+    bool? locationLocked,
   }) =>
       MitraProfileData(
         businessName: businessName ?? this.businessName,
@@ -162,6 +177,9 @@ class MitraProfileData {
         kecamatan: kecamatan ?? this.kecamatan,
         kelurahan: kelurahan ?? this.kelurahan,
         addressDetail: addressDetail ?? this.addressDetail,
+        latitude: latitude ?? this.latitude,
+        longitude: longitude ?? this.longitude,
+        locationLocked: locationLocked ?? this.locationLocked,
       );
 }
 
