@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
 import '../../auth/services/auth_service.dart';
+import '../../mitra/presentation/mitra_pickup_page.dart';
+import '../../mitra/presentation/mitra_pickup_history_page.dart';
+import '../../mitra/presentation/mitra_reward_page.dart';
+import '../../mitra/presentation/mitra_shop_page.dart';
 import '../../profile/presentation/profile_pages.dart';
 import '../../../dashboard_mitra_page.dart';
 
@@ -23,6 +27,7 @@ class RoleNavigationPage extends StatefulWidget {
 
 class _RoleNavigationPageState extends State<RoleNavigationPage> {
   int _selectedIndex = 0;
+  bool _showMitraHistory = false;
 
   List<_NavTab> get _tabs {
     switch (widget.role) {
@@ -61,7 +66,24 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
   }
 
   Widget _selectedPage() {
+    if (widget.role == UserRole.mitra && _showMitraHistory) {
+      return MitraPickupHistoryPage(
+        onBack: () => setState(() => _showMitraHistory = false),
+        onCreatePickup: () => setState(() {
+          _showMitraHistory = false;
+          _selectedIndex = 1;
+        }),
+      );
+    }
+
     final selectedLabel = _tabs[_selectedIndex].label;
+
+    if (widget.role == UserRole.mitra && selectedLabel == 'Reward') {
+      return const MitraRewardPage();
+    }
+    if (widget.role == UserRole.mitra && selectedLabel == 'Belanja') {
+      return const MitraShopPage();
+    }
 
     if (selectedLabel == 'Profil') {
       return ProfilePage(
@@ -70,7 +92,22 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
       );
     }
 
+    if (widget.role == UserRole.mitra && selectedLabel == 'Jemput') {
+      return MitraPickupPage(
+        onBack: () => setState(() => _selectedIndex = 0),
+      );
+    }
+
     if (selectedLabel == 'Beranda') {
+      if (widget.role == UserRole.mitra) {
+        return DashboardMitraPage(
+          authService: widget.authService,
+          onCreatePickup: () => setState(() => _selectedIndex = 1),
+          onShowReward: () => setState(() => _selectedIndex = 2),
+          onShowShop: () => setState(() => _selectedIndex = 3),
+          onShowHistory: () => setState(() => _showMitraHistory = true),
+        );
+      }
       return AuthenticatedHomePage(role: widget.role);
     }
 
@@ -79,6 +116,11 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.role == UserRole.mitra &&
+        (_selectedIndex == 1 || _showMitraHistory)) {
+      return _selectedPage();
+    }
+
     return Scaffold(
       backgroundColor: GreenLoopColors.surface,
       body: SafeArea(bottom: false, child: _selectedPage()),

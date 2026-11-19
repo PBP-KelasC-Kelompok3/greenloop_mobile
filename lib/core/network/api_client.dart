@@ -84,9 +84,13 @@ class ApiException implements Exception {
 /// Supports Flutter Web cross-origin cookies via BrowserClient with credentials enabled.
 class ApiClient {
   ApiClient({
-    this.baseUrl = 'http://localhost:8000',
+    String? baseUrl,
     http.Client? client,
-  }) : _client = client ?? createClient();
+  })  : baseUrl = baseUrl ?? const String.fromEnvironment(
+          'API_BASE_URL',
+          defaultValue: 'http://localhost:8000',
+        ),
+        _client = client ?? createClient();
 
   String baseUrl;
   final http.Client _client;
@@ -121,10 +125,19 @@ class ApiClient {
     }
 
     final uri = _buildUri('/api/auth/csrf/');
-    final response = await _client.get(
-      uri,
-      headers: const {'Accept': 'application/json'},
-    );
+    late final http.Response response;
+    try {
+      response = await _client.get(
+        uri,
+        headers: const {'Accept': 'application/json'},
+      );
+    } on http.ClientException catch (error) {
+      throw ApiException(
+        statusCode: 0,
+        message:
+            'Tidak dapat terhubung ke server ($uri). Pastikan backend berjalan dan mengizinkan CORS untuk aplikasi ini. Detail: ${error.message}',
+      );
+    }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final decoded = jsonDecode(response.body);
