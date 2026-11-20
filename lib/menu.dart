@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'courier_page.dart';
+import 'features/courier/presentation/courier_page.dart';
 
 class MyHomePage extends StatelessWidget {
   MyHomePage({super.key});

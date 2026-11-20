@@ -53,7 +53,6 @@ class _CourierDashboardPageState extends State<CourierDashboardPage> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigation(),
     );
   }
 
@@ -235,30 +234,6 @@ class _CourierDashboardPageState extends State<CourierDashboardPage> {
     );
   }
 
-  Widget _buildBottomNavigation() {
-    return BottomNavigationBar(
-      currentIndex: 0,
-      onTap: (index) {
-        if (index != 0) {
-          const names = ['Dashboard', 'Rute', 'Rekap', 'Profil'];
-          _showMessage('Halaman ${names[index]} akan diimplementasikan berikutnya.');
-        }
-      },
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: Colors.white,
-      selectedItemColor: _green,
-      unselectedItemColor: _muted,
-      selectedFontSize: 8,
-      unselectedFontSize: 8,
-      iconSize: 18,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_rounded), label: 'Dashboard'),
-        BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Rute'),
-        BottomNavigationBarItem(icon: Icon(Icons.scale_outlined), label: 'Rekap'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), label: 'Profil'),
-      ],
-    );
-  }
 }
 
 class _StatCard extends StatelessWidget {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
 import '../../auth/services/auth_service.dart';
+import '../../courier/presentation/courier_page.dart';
 import '../../profile/presentation/profile_pages.dart';
 
 /// Shell for authenticated users with role-specific bottom navigation tabs.
@@ -41,12 +42,9 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
 
       case UserRole.courier:
         return const [
-          _NavTab('Beranda', Icons.home_outlined, Icons.home),
-          _NavTab(
-            'Jemput',
-            Icons.local_shipping_outlined,
-            Icons.local_shipping,
-          ),
+          _NavTab('Dashboard', Icons.home_outlined, Icons.home),
+          _NavTab('Rute', Icons.map_outlined, Icons.map),
+          _NavTab('Rekap', Icons.scale_outlined, Icons.scale),
           _NavTab('Profil', Icons.person_outline, Icons.person),
         ];
 
@@ -69,7 +67,10 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
       );
     }
 
-    if (selectedLabel == 'Beranda') {
+    if (selectedLabel == 'Beranda' || selectedLabel == 'Dashboard') {
+      if (widget.role == UserRole.courier) {
+        return const CourierDashboardPage();
+      }
       return AuthenticatedHomePage(role: widget.role);
     }
 
