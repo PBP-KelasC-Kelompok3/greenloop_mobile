@@ -97,19 +97,26 @@ void main() {
 
     final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-    await tester.pumpWidget(MaterialApp(
-      home: LoginPage(authService: authService),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(home: LoginPage(authService: authService)),
+    );
 
     await tester.enterText(find.byKey(const Key('login-email')), 'budi');
-    await tester.enterText(find.byKey(const Key('login-password')), 'secret123');
+    await tester.enterText(
+      find.byKey(const Key('login-password')),
+      'secret123',
+    );
     await tester.ensureVisible(find.text('Masuk'));
     await tester.tap(find.text('Masuk'));
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginPage), findsNothing);
     expect(find.byType(RoleNavigationPage), findsOneWidget);
-    expect(find.text('Ruang Courier di GreenLoop'), findsOneWidget);
+    expect(find.text('Halo, Budi 👋'), findsOneWidget);
+    expect(find.text('Status Tugas'), findsOneWidget);
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Rute'), findsOneWidget);
+    expect(find.text('Rekap'), findsOneWidget);
   });
 
   testWidgets('registration fields follow selected role', (tester) async {
@@ -192,9 +199,9 @@ void main() {
 
     final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-    await tester.pumpWidget(MaterialApp(
-      home: RegisterPage(authService: authService),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(home: RegisterPage(authService: authService)),
+    );
 
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Username'),
@@ -317,9 +324,11 @@ void main() {
     await authService.login(username: 'logout_user', password: 'password');
     expect(authService.isAuthenticated, isTrue);
 
-    await tester.pumpWidget(MaterialApp(
-      home: ProfilePage(role: UserRole.consumer, authService: authService),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProfilePage(role: UserRole.consumer, authService: authService),
+      ),
+    );
 
     expect(find.text('logout_user'), findsOneWidget);
 
@@ -362,14 +371,15 @@ void main() {
 
       final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-      await tester.pumpWidget(MaterialApp(
-        home: WelcomePage(authService: authService),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(home: WelcomePage(authService: authService)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(WelcomePage), findsNothing);
       expect(find.byType(RoleNavigationPage), findsOneWidget);
-      expect(find.text('Ruang Courier di GreenLoop'), findsOneWidget);
+      expect(find.text('Halo, Budi 👋'), findsOneWidget);
+      expect(find.text('Status Tugas'), findsOneWidget);
     },
   );
 
@@ -391,9 +401,9 @@ void main() {
 
       final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-      await tester.pumpWidget(MaterialApp(
-        home: WelcomePage(authService: authService),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(home: WelcomePage(authService: authService)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(WelcomePage), findsOneWidget);
@@ -410,9 +420,9 @@ void main() {
 
       final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-      await tester.pumpWidget(MaterialApp(
-        home: WelcomePage(authService: authService),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(home: WelcomePage(authService: authService)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(WelcomePage), findsOneWidget);
