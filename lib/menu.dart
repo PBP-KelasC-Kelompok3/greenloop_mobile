@@ -1,16 +1,19 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'courier_page.dart';
 
 class MyHomePage extends StatelessWidget {
   MyHomePage({super.key});
 
   // Data ringkas untuk header aplikasi kelompok
   final String appName = "GreenLoop";
-  final String kelas = "PBP C"; 
+  final String kelas = "PBP C";
 
   final List<ItemHomepage> items = [
     ItemHomepage("Lihat Daftar", Icons.list_alt, Colors.green.shade700),
     ItemHomepage("Tambah Data", Icons.add_circle, Colors.amber.shade700),
     ItemHomepage("Live Impact", Icons.eco, Colors.teal),
+    ItemHomepage("Halaman Kurir", Icons.local_shipping, const Color(0xFF176B45), 
+      page: const CourierDashboardPage()),
     ItemHomepage("Logout", Icons.logout, Colors.redAccent),
   ];
 
@@ -20,10 +23,7 @@ class MyHomePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text(
           'GreenLoop Mobile',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
       ),
@@ -54,18 +54,14 @@ class MyHomePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16.0),
-            // GridView untuk Tombol Aksi Modul
             Expanded(
               child: GridView.count(
                 primary: true,
                 padding: const EdgeInsets.all(20),
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                children: items.map((ItemHomepage item) {
-                  return ItemCard(item);
-                }).toList(),
+                crossAxisCount: 2,
+                children: items.map((item) => ItemCard(item)).toList(),
               ),
             ),
           ],
@@ -85,23 +81,21 @@ class InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 2.0,
-      child: Container(
-        // Lebar disesuaikan untuk 2 kartu agar pas di layar
+      child: SizedBox(
         width: MediaQuery.of(context).size.width / 2.5,
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              content,
-              style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Text(title, style: const TextStyle(color: Colors.grey)),
+              const SizedBox(height: 8.0),
+              Text(
+                content,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -112,8 +106,9 @@ class ItemHomepage {
   final String name;
   final IconData icon;
   final Color color;
+  final Widget? page;
 
-  ItemHomepage(this.name, this.icon, this.color);
+  ItemHomepage(this.name, this.icon, this.color, {this.page});
 }
 
 class ItemCard extends StatelessWidget {
@@ -127,30 +122,27 @@ class ItemCard extends StatelessWidget {
       color: item.color,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
+        borderRadius: BorderRadius.circular(12),
         onTap: () {
+          if (item.page != null) {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => item.page!),
+            );
+            return;
+          }
           ScaffoldMessenger.of(context)
             ..hideCurrentSnackBar()
-            ..showSnackBar(
-              SnackBar(content: Text("Kamu telah menekan tombol ${item.name}!"))
-            );
+            ..showSnackBar(SnackBar(content: Text('Kamu telah menekan tombol ${item.name}!')));
         },
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.all(8),
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  item.icon,
-                  color: Colors.white,
-                  size: 30.0,
-                ),
-                const Padding(padding: EdgeInsets.all(3)),
-                Text(
-                  item.name,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white),
-                ),
+                Icon(item.icon, color: Colors.white, size: 30),
+                const SizedBox(height: 6),
+                Text(item.name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
               ],
             ),
           ),
