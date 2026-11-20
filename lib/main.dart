@@ -1,25 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:greenloop_mobile/menu.dart'; 
+
+import 'app/app.dart';
 
 void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'GreenLoop Mobile',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green, // Warna dasar tema aplikasi
-          secondary: Colors.amber[700], // Warna sekunder untuk aksen
-        ),
-        useMaterial3: true,
-      ),
-      home: MyHomePage(),
-    );
-  }
+  runApp(const GreenLoopApp());
 }
