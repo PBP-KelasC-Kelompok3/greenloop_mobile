@@ -7,6 +7,7 @@ import '../../mitra/presentation/mitra_pickup_page.dart';
 import '../../mitra/presentation/mitra_pickup_history_page.dart';
 import '../../mitra/presentation/mitra_reward_page.dart';
 import '../../mitra/presentation/mitra_shop_page.dart';
+import '../../courier/presentation/courier_page.dart';
 import '../../profile/presentation/profile_pages.dart';
 import '../../../dashboard_mitra_page.dart';
 import '../../admin/presentation/admin_navigation_page.dart';
@@ -48,12 +49,9 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
 
       case UserRole.courier:
         return const [
-          _NavTab('Beranda', Icons.home_outlined, Icons.home),
-          _NavTab(
-            'Jemput',
-            Icons.local_shipping_outlined,
-            Icons.local_shipping,
-          ),
+          _NavTab('Dashboard', Icons.home_outlined, Icons.home),
+          _NavTab('Rute', Icons.map_outlined, Icons.map),
+          _NavTab('Rekap', Icons.scale_outlined, Icons.scale),
           _NavTab('Profil', Icons.person_outline, Icons.person),
         ];
 
@@ -105,7 +103,7 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
       );
     }
 
-    if (selectedLabel == 'Beranda') {
+    if (selectedLabel == 'Beranda' || selectedLabel == 'Dashboard') {
       if (widget.role == UserRole.mitra) {
         return DashboardMitraPage(
           authService: widget.authService,
@@ -114,6 +112,9 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
           onShowShop: () => setState(() => _selectedIndex = 3),
           onShowHistory: () => setState(() => _showMitraHistory = true),
         );
+      }
+      if (widget.role == UserRole.courier) {
+        return const CourierDashboardPage();
       }
       return AuthenticatedHomePage(role: widget.role);
     }
