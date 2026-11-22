@@ -22,23 +22,6 @@ extension PublicRegistrationRoleLabel on PublicRegistrationRole {
   };
 }
 
-Future<void> _logoutToLogin(
-  AuthService authService,
-  NavigatorState navigator,
-) async {
-  try {
-    await authService.logout();
-  } catch (_) {
-    // Still let the user return to the login page when the API is unavailable.
-  }
-  navigator.pushAndRemoveUntil(
-    MaterialPageRoute<void>(
-      builder: (_) => LoginPage(authService: authService),
-    ),
-    (route) => false,
-  );
-}
-
 // =====================================================
 // WELCOME / ONBOARDING - M01
 // =====================================================
@@ -77,7 +60,6 @@ class _WelcomePageState extends State<WelcomePage> {
           builder: (_) => RoleNavigationPage(
             role: profile.role,
             authService: _effectiveAuth,
-            onLogout: () => _logoutToLogin(_effectiveAuth, navigator),
           ),
         ),
       );
@@ -376,7 +358,6 @@ class _LoginPageState extends State<LoginPage> {
             builder: (_) => RoleNavigationPage(
               role: profile.role,
               authService: _effectiveAuth,
-              onLogout: () => _logoutToLogin(_effectiveAuth, navigator),
             ),
           ),
           (route) => false,
@@ -898,7 +879,6 @@ class _RegisterPageState extends State<RegisterPage> {
             builder: (_) => RoleNavigationPage(
               role: profile.role,
               authService: _effectiveAuth,
-              onLogout: () => _logoutToLogin(_effectiveAuth, navigator),
             ),
           ),
           (route) => false,

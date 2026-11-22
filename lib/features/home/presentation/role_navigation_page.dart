@@ -10,20 +10,17 @@ import '../../mitra/presentation/mitra_shop_page.dart';
 import '../../profile/presentation/profile_pages.dart';
 import '../../../dashboard_mitra_page.dart';
 import '../../admin/presentation/admin_navigation_page.dart';
-import '../../courier/presentation/courier_pending_verification_page.dart';
 
 /// Shell for authenticated users with role-specific bottom navigation tabs.
 class RoleNavigationPage extends StatefulWidget {
   const RoleNavigationPage({
     required this.role,
     this.authService,
-    this.onLogout,
     super.key,
   });
 
   final UserRole role;
   final AuthService? authService;
-  final Future<void> Function()? onLogout;
 
   @override
   State<RoleNavigationPage> createState() => _RoleNavigationPageState();
@@ -126,16 +123,6 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = widget.authService ?? defaultAuthService;
-    if (widget.role == UserRole.courier &&
-        auth.currentUser?.courierProfile?.isApproved != true) {
-      return CourierPendingVerificationPage(
-        authService: auth,
-        onApproved: () => setState(() {}),
-        onLogout: widget.onLogout ?? () async {},
-      );
-    }
-
     if (widget.role == UserRole.admin) {
       return AdminNavigationPage(authService: widget.authService);
     }
