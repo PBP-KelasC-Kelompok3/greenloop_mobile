@@ -14,11 +14,7 @@ import '../../admin/presentation/admin_navigation_page.dart';
 
 /// Shell for authenticated users with role-specific bottom navigation tabs.
 class RoleNavigationPage extends StatefulWidget {
-  const RoleNavigationPage({
-    required this.role,
-    this.authService,
-    super.key,
-  });
+  const RoleNavigationPage({required this.role, this.authService, super.key});
 
   final UserRole role;
   final AuthService? authService;
@@ -85,14 +81,11 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
       return const MitraRewardPage();
     }
     if (widget.role == UserRole.mitra && selectedLabel == 'Belanja') {
-      return const MitraShopPage();
+      return MitraShopPage(authService: widget.authService);
     }
 
     if (selectedLabel == 'Profil') {
-      return ProfilePage(
-        role: widget.role,
-        authService: widget.authService,
-      );
+      return ProfilePage(role: widget.role, authService: widget.authService);
     }
 
     if (widget.role == UserRole.mitra && selectedLabel == 'Jemput') {
@@ -100,6 +93,20 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
         authService: widget.authService,
         onBack: () => setState(() => _selectedIndex = 0),
         onSubmitted: (_) => setState(() => _showMitraHistory = true),
+      );
+    }
+
+    if (widget.role == UserRole.courier &&
+        (selectedLabel == 'Dashboard' ||
+            selectedLabel == 'Rute' ||
+            selectedLabel == 'Rekap')) {
+      return CourierDashboardPage(
+        authService: widget.authService,
+        mode: switch (selectedLabel) {
+          'Rute' => CourierPageMode.route,
+          'Rekap' => CourierPageMode.recap,
+          _ => CourierPageMode.dashboard,
+        },
       );
     }
 
@@ -112,9 +119,6 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
           onShowShop: () => setState(() => _selectedIndex = 3),
           onShowHistory: () => setState(() => _showMitraHistory = true),
         );
-      }
-      if (widget.role == UserRole.courier) {
-        return const CourierDashboardPage();
       }
       return AuthenticatedHomePage(role: widget.role);
     }
