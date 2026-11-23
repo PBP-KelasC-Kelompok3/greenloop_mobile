@@ -23,14 +23,14 @@ class GreenLoopButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
     );
 
     // Warna label mengikuti Figma:
     // - tombol primer: putih (deepForest untuk varian light)
     // - tombol sekunder: circleGreen (#1E5B2E), juga untuk varian light
-    final primaryLabel = light ? GreenLoopColors.deepForest : Colors.white;
-    const secondaryLabel = GreenLoopColors.circleGreen;
+    final primaryLabel = light ? GreenLoopColors.green900 : Colors.white;
+    const secondaryLabel = GreenLoopColors.green700;
 
     final effectiveOnPressed = isLoading ? null : onPressed;
 
@@ -65,7 +65,8 @@ class GreenLoopButton extends StatelessWidget {
                 foregroundColor: secondaryLabel,
                 backgroundColor: Colors.white,
                 side: BorderSide(
-                  color: light ? Colors.white : GreenLoopColors.forest2,
+                  color: light ? Colors.white : GreenLoopColors.green700,
+                  width: 1.5,
                 ),
                 shape: shape,
               ),
@@ -76,8 +77,8 @@ class GreenLoopButton extends StatelessWidget {
               style: FilledButton.styleFrom(
                 foregroundColor: primaryLabel,
                 backgroundColor: light
-                    ? GreenLoopColors.leaf
-                    : GreenLoopColors.forest2,
+                    ? GreenLoopColors.lime
+                    : GreenLoopColors.green700,
                 elevation: 0,
                 shape: shape,
               ),

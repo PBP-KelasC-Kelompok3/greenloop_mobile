@@ -155,19 +155,25 @@ class ModulePlaceholderPage extends StatelessWidget {
     required this.title,
     required this.module,
     this.icon = LucideIcons.hourglass,
+    this.showBack = false,
     super.key,
   });
 
   final String title;
   final String module;
   final IconData icon;
+  final bool showBack;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        GLScreenHeader(title: title, subtitle: 'Modul $module'),
+        GLScreenHeader(
+          title: title,
+          subtitle: 'Modul $module',
+          showBack: showBack,
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: GLCard(

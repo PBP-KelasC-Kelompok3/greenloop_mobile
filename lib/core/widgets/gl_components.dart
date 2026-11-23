@@ -791,6 +791,7 @@ class GLOptionTile extends StatelessWidget {
     this.icon,
     this.subtitle,
     this.vertical = false,
+    this.centered = false,
     super.key,
   });
 
@@ -803,12 +804,15 @@ class GLOptionTile extends StatelessWidget {
   /// true: ikon di atas teks, rata tengah (kartu role di M03).
   final bool vertical;
 
+  /// true: ikon + teks di tengah (pilihan armada di M03b dan M05).
+  final bool centered;
+
   @override
   Widget build(BuildContext context) {
     final fg = selected ? GreenLoopColors.green700 : GreenLoopColors.textInk;
     final labelStyle = _poppins(
       12,
-      selected ? FontWeight.w600 : FontWeight.w500,
+      vertical ? FontWeight.w700 : (selected ? FontWeight.w600 : FontWeight.w500),
       color: fg,
       height: 1.3,
     );
@@ -834,32 +838,35 @@ class GLOptionTile extends StatelessWidget {
         ],
       );
     } else {
+      final text = Text(label, style: labelStyle);
       content = Row(
+        mainAxisAlignment: centered ? MainAxisAlignment.center : MainAxisAlignment.start,
         children: [
           if (icon != null) ...[
             Icon(icon, size: 16, color: fg),
             const SizedBox(width: 8),
           ],
-          Expanded(child: Text(label, style: labelStyle)),
+          if (centered) Flexible(child: text) else Expanded(child: text),
         ],
       );
     }
 
+    final radius = BorderRadius.circular(vertical ? 14 : 12);
     return Material(
       color: selected ? GreenLoopColors.green100 : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: radius,
         side: BorderSide(
           color: selected ? GreenLoopColors.green700 : GreenLoopColors.cardBorder,
-          width: selected ? 1.4 : 1,
+          width: selected ? 1.5 : 1,
         ),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: radius,
         onTap: onTap,
         child: Padding(
           padding: vertical
-              ? const EdgeInsets.symmetric(horizontal: 8, vertical: 12)
+              ? const EdgeInsets.all(10)
               : const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           child: content,
         ),

@@ -151,25 +151,28 @@ class GreenLoopTheme {
           horizontal: 14,
           vertical: 14,
         ),
+        // Figma: field putih, border #DCE5D7, fokus border hijau 1.5
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-            color: GreenLoopColors.border,
+            color: GreenLoopColors.cardBorder,
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-            color: GreenLoopColors.border,
+            color: GreenLoopColors.cardBorder,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-            color: GreenLoopColors.forest2,
-            width: 1.4,
+            color: Color(0xFF3D8B47),
+            width: 1.5,
           ),
         ),
+        prefixIconColor: GreenLoopColors.textInk,
+        suffixIconColor: GreenLoopColors.textInk,
       ),
 
       // Teks tombol: 15 / SemiBold (Figma: Mobile/Button)

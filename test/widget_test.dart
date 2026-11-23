@@ -20,31 +20,32 @@ void main() {
       findsOneWidget,
     );
 
-    final loginButton = find.text('Saya sudah punya akun');
+    final loginButton = find.text('Masuk');
     await tester.ensureVisible(loginButton);
     await tester.tap(loginButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('Selamat datang kembali'), findsOneWidget);
+    expect(find.text('Masuk ke GreenLoop'), findsOneWidget);
     expect(find.byKey(const Key('login-email')), findsOneWidget);
 
-    await tester.pageBack();
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
     await tester.pumpAndSettle();
 
-    final registerButton = find.text('Daftar sebagai Mitra');
+    final registerButton = find.text('Daftar Akun');
     await tester.ensureVisible(registerButton);
     await tester.tap(registerButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('Gabung dengan GreenLoop'), findsOneWidget);
+    expect(find.text('Daftar Akun'), findsOneWidget);
+    expect(find.text('Daftar sebagai Mitra'), findsOneWidget);
 
     await tester.scrollUntilVisible(
-      find.text('Nama Usaha'),
+      find.text('Nama usaha'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
 
-    expect(find.text('Nama Usaha'), findsOneWidget);
+    expect(find.text('Nama usaha'), findsOneWidget);
     expect(find.text('Admin'), findsNothing);
   });
 
@@ -117,43 +118,41 @@ void main() {
 
     expect(find.text('Admin'), findsNothing);
 
-    await tester.ensureVisible(find.text('Mitra'));
-    await tester.tap(find.text('Mitra'));
+    await tester.tap(find.byKey(const Key('register-role-mitra')));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('Nama Usaha'),
+      find.text('Nama usaha'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
 
-    expect(find.text('Nama Usaha'), findsOneWidget);
-    expect(find.text('Plat Nomor'), findsNothing);
+    expect(find.text('Nama usaha'), findsOneWidget);
+    expect(find.text('Nomor polisi'), findsNothing);
 
     await tester.scrollUntilVisible(
-      find.text('Alamat Lengkap'),
+      find.text('Alamat lengkap'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
 
-    expect(find.text('Alamat Lengkap'), findsOneWidget);
+    expect(find.text('Alamat lengkap'), findsOneWidget);
 
     // Kembali ke bagian pilihan role.
     await tester.drag(find.byType(ListView), const Offset(0, 1400));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Courier'));
-    await tester.tap(find.text('Courier'));
+    await tester.tap(find.byKey(const Key('register-role-courier')));
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
-      find.text('Plat Nomor'),
+      find.text('Nomor polisi'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
 
-    expect(find.text('Plat Nomor'), findsOneWidget);
-    expect(find.text('Nama Usaha'), findsNothing);
+    expect(find.text('Nomor polisi'), findsOneWidget);
+    expect(find.text('Nama usaha'), findsNothing);
   });
 
   testWidgets('registration navigates to RoleNavigationPage on success', (
@@ -197,28 +196,23 @@ void main() {
     ));
 
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Username'),
+      find.byKey(const Key('register-username')),
       'newbie',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Email'),
+      find.byKey(const Key('register-email')),
       'newbie@example.com',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Kata sandi'),
+      find.byKey(const Key('register-password1')),
       'password123',
     );
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Ulangi kata sandi'),
+      find.byKey(const Key('register-password2')),
       'password123',
     );
 
-    await tester.scrollUntilVisible(
-      find.widgetWithText(FilledButton, 'Daftar'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.widgetWithText(FilledButton, 'Daftar'));
+    await tester.tap(find.byKey(const Key('register-submit')));
     await tester.pumpAndSettle();
 
     expect(find.byType(RegisterPage), findsNothing);
@@ -238,7 +232,7 @@ void main() {
     await tester.tap(loginButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('Selamat datang kembali'), findsOneWidget);
+    expect(find.text('Masuk ke GreenLoop'), findsOneWidget);
   });
 
   testWidgets('mitra navigation opens profile and edit profile', (
