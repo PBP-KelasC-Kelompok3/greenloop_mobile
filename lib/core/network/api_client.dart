@@ -84,9 +84,13 @@ class ApiException implements Exception {
 /// Supports Flutter Web cross-origin cookies via BrowserClient with credentials enabled.
 class ApiClient {
   ApiClient({
-    this.baseUrl = 'http://localhost:8000',
+    String? baseUrl,
     http.Client? client,
-  }) : _client = client ?? createClient();
+  })  : baseUrl = baseUrl ?? const String.fromEnvironment(
+          'API_BASE_URL',
+          defaultValue: 'http://localhost:8000',
+        ),
+        _client = client ?? createClient();
 
   String baseUrl;
   final http.Client _client;
@@ -121,10 +125,19 @@ class ApiClient {
     }
 
     final uri = _buildUri('/api/auth/csrf/');
-    final response = await _client.get(
-      uri,
-      headers: const {'Accept': 'application/json'},
-    );
+    late final http.Response response;
+    try {
+      response = await _client.get(
+        uri,
+        headers: const {'Accept': 'application/json'},
+      );
+    } on http.ClientException catch (error) {
+      throw ApiException(
+        statusCode: 0,
+        message:
+            'Tidak dapat terhubung ke server ($uri). Pastikan backend berjalan dan mengizinkan CORS untuk aplikasi ini. Detail: ${error.message}',
+      );
+    }
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final decoded = jsonDecode(response.body);
@@ -185,8 +198,53 @@ class ApiClient {
     };
 
     final payload = body is String || body == null ? body as String? : jsonEncode(body);
-    final response = await _client.post(uri, headers: mergedHeaders, body: payload);
+    var response = await _client.post(uri, headers: mergedHeaders, body: payload);
+    if (requireCsrf && response.statusCode == 403) {
+      token = await fetchCsrfToken(force: true);
+      response = await _client.post(
+        uri,
+        headers: {...mergedHeaders, 'X-CSRFToken': token},
+        body: payload,
+      );
+    }
 
+    _extractCsrfFromResponse(response);
+    return response;
+  }
+
+  /// Send a multipart POST containing one upload and CSRF protection.
+  Future<http.Response> postMultipart(
+    String path, {
+    required Map<String, String> fields,
+    required String fileField,
+    required List<int> fileBytes,
+    required String filename,
+    bool requireCsrf = true,
+  }) async {
+    final uri = _buildUri(path);
+    var token = requireCsrf ? await fetchCsrfToken() : null;
+
+    Future<http.Response> sendRequest() async {
+      final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll({
+          'Accept': 'application/json',
+          if (token != null) 'X-CSRFToken': token!,
+        })
+        ..fields.addAll(fields)
+        ..files.add(http.MultipartFile.fromBytes(
+          fileField,
+          fileBytes,
+          filename: filename,
+        ));
+      final streamedResponse = await _client.send(request);
+      return http.Response.fromStream(streamedResponse);
+    }
+
+    var response = await sendRequest();
+    if (requireCsrf && response.statusCode == 403) {
+      token = await fetchCsrfToken(force: true);
+      response = await sendRequest();
+    }
     _extractCsrfFromResponse(response);
     return response;
   }
@@ -213,7 +271,17 @@ class ApiClient {
     };
 
     final payload = body is String || body == null ? body as String? : jsonEncode(body);
-    final response = await _client.patch(uri, headers: mergedHeaders, body: payload);
+    var response = await _client.patch(uri, headers: mergedHeaders, body: payload);
+    if (requireCsrf && response.statusCode == 403) {
+      // A 403 can happen when Django rotated the cookie after an existing
+      // session was established. Refresh once and retry with the matching token.
+      token = await fetchCsrfToken(force: true);
+      response = await _client.patch(
+        uri,
+        headers: {...mergedHeaders, 'X-CSRFToken': token},
+        body: payload,
+      );
+    }
 
     _extractCsrfFromResponse(response);
     return response;

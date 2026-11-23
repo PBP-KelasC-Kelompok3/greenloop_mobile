@@ -54,7 +54,8 @@ class _WelcomePageState extends State<WelcomePage> {
   Future<void> _restoreSession() async {
     final profile = await _effectiveAuth.checkSession();
     if (profile != null && mounted) {
-      Navigator.of(context).pushReplacement(
+      final navigator = Navigator.of(context);
+      navigator.pushReplacement(
         MaterialPageRoute<void>(
           builder: (_) => RoleNavigationPage(
             role: profile.role,
@@ -288,13 +289,14 @@ class _PageDot extends StatelessWidget {
 // LOGIN ROLE SELECTOR
 // =====================================================
 
-enum _LoginRole { mitra, courier, consumer }
+enum _LoginRole { mitra, courier, consumer, admin }
 
 extension on _LoginRole {
   String get label => switch (this) {
     _LoginRole.mitra => 'Mitra B2B',
     _LoginRole.courier => 'Kurir',
     _LoginRole.consumer => 'Konsumen',
+    _LoginRole.admin => 'Admin',
   };
 }
 
@@ -350,7 +352,8 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
 
         // Use the actual role returned by the backend to navigate to dashboard
-        Navigator.of(context).pushAndRemoveUntil(
+        final navigator = Navigator.of(context);
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute<void>(
             builder: (_) => RoleNavigationPage(
               role: profile.role,
@@ -870,7 +873,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
         if (!mounted) return;
 
-        Navigator.of(context).pushAndRemoveUntil(
+        final navigator = Navigator.of(context);
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute<void>(
             builder: (_) => RoleNavigationPage(
               role: profile.role,
