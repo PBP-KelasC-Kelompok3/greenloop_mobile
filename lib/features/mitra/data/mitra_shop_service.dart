@@ -296,12 +296,16 @@ class MitraShopService {
     String destinationLabel = '',
     ShopShippingOption? shipping,
     DateTime? pickupDate,
+    String voucherCode = '',
   }) async {
     final fields = <String, String>{
       'recipient_name': recipient.trim(),
       'phone': phone.trim(),
       'fulfillment_method': method,
     };
+    if (voucherCode.trim().isNotEmpty) {
+      fields['voucher_code'] = voucherCode.trim().toUpperCase();
+    }
     if (method == 'self_pickup') {
       if (pickupDate != null)
         fields['pickup_date'] =
