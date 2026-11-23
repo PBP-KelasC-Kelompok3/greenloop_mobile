@@ -24,6 +24,7 @@ class _MitraCheckoutPageState extends State<MitraCheckoutPage> {
       'Jl. Prof. Dr. Sudjono D. Pusponegoro (Jl. Prof. Dr. Nugroho Notosusanto), Pondok Cina, Kecamatan Beji, Kota Depok, Jawa Barat 16424/16425';
   final _name = TextEditingController();
   final _phone = TextEditingController();
+  final _voucher = TextEditingController();
   final _address = TextEditingController();
   final _destinationSearch = TextEditingController();
   Timer? _searchDebounce;
@@ -43,6 +44,7 @@ class _MitraCheckoutPageState extends State<MitraCheckoutPage> {
     _searchDebounce?.cancel();
     _name.dispose();
     _phone.dispose();
+    _voucher.dispose();
     _address.dispose();
     _destinationSearch.dispose();
     super.dispose();
@@ -150,6 +152,7 @@ class _MitraCheckoutPageState extends State<MitraCheckoutPage> {
         destinationLabel: _destination?.label ?? '',
         shipping: _selectedOption,
         pickupDate: _pickupDate,
+        voucherCode: _voucher.text,
       );
       if (!mounted) return;
       final uri = Uri.tryParse(result.paymentUrl);
@@ -422,6 +425,20 @@ class _MitraCheckoutPageState extends State<MitraCheckoutPage> {
                   color: GreenLoopColors.muted,
                   height: 1.4,
                 ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _voucher,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(
+                  labelText: 'Kode voucher Mitra (opsional)',
+                  prefixIcon: Icon(Icons.confirmation_number_outlined),
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Voucher hanya untuk Mitra dan akan divalidasi oleh server. Harga katalog tetap sama untuk Mitra dan Konsumen.',
+                style: TextStyle(fontSize: 11, color: GreenLoopColors.muted),
               ),
               const SizedBox(height: 6),
               _row(

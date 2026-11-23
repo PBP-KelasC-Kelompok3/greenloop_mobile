@@ -76,18 +76,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
   List<AdminPickupItem> get _visibleItems {
     final query = _searchController.text.trim().toLowerCase();
-    return _items.where((item) {
-      final matchesStatus = _filter == 'ALL' || item.status == _filter;
-      final haystack = <String>[
-        item.code,
-        item.mitraName,
-        item.businessName,
-        item.mitraEmail,
-        item.wasteTypeLabel,
-        item.notes,
-      ].join(' ').toLowerCase();
-      return matchesStatus && (query.isEmpty || haystack.contains(query));
-    }).toList(growable: false);
+    return _items
+        .where((item) {
+          final matchesStatus = _filter == 'ALL' || item.status == _filter;
+          final haystack = <String>[
+            item.code,
+            item.mitraName,
+            item.businessName,
+            item.mitraEmail,
+            item.wasteTypeLabel,
+            item.notes,
+          ].join(' ').toLowerCase();
+          return matchesStatus && (query.isEmpty || haystack.contains(query));
+        })
+        .toList(growable: false);
   }
 
   Future<void> _changeStatus(AdminPickupItem item, String action) async {
@@ -124,9 +126,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
       await _load();
     } on ApiException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message)),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
     }
   }
 
@@ -146,8 +147,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
   @override
   Widget build(BuildContext context) {
     final pending = _items.where((item) => item.status == 'PENDING').length;
-    final waitingCourier =
-        _items.where((item) => item.status == 'APPROVED').length;
+    final waitingCourier = _items
+        .where((item) => item.status == 'APPROVED')
+        .length;
     final visible = _visibleItems;
 
     return Scaffold(
@@ -157,7 +159,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Dashboard Admin'),
+            Text('Sampah'),
             Text(
               'Verifikasi penjemputan',
               style: TextStyle(fontSize: 11, color: GreenLoopColors.muted),
@@ -190,7 +192,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
             const SizedBox(height: 14),
             Row(
               children: [
-                Expanded(child: _CountCard(label: 'Menunggu', count: pending)),
+                Expanded(
+                  child: _CountCard(label: 'Menunggu', count: pending),
+                ),
                 const SizedBox(width: 9),
                 Expanded(
                   child: _CountCard(
@@ -308,27 +312,29 @@ class _CountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: GreenLoopColors.border),
-          borderRadius: BorderRadius.circular(15),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: GreenLoopColors.border),
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$count',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('$count',
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 2),
-            Text(label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 10, color: GreenLoopColors.muted)),
-          ],
+        const SizedBox(height: 2),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 10, color: GreenLoopColors.muted),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _PickupCard extends StatelessWidget {
@@ -339,83 +345,104 @@ class _PickupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
-        margin: EdgeInsets.zero,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(13),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    margin: EdgeInsets.zero,
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(13),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(item.code,
-                          style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w800)),
-                    ),
-                    _StatusPill(status: item.status, label: item.statusLabel),
-                  ],
-                ),
-                const SizedBox(height: 9),
-                Text(
-                  item.businessName.isEmpty
-                      ? item.mitraName
-                      : '${item.businessName} · ${item.mitraName}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${_dateLabel(item.pickupDate)} · ${item.timeSlot}',
-                  style: const TextStyle(
-                      color: GreenLoopColors.muted, fontSize: 12),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${item.wasteTypeLabel} · ${_weightLabel(item.estimatedWeight)} kg',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 3),
-                Text('Armada: ${item.vehicle}',
+                Expanded(
+                  child: Text(
+                    item.code,
                     style: const TextStyle(
-                        color: GreenLoopColors.muted, fontSize: 12)),
-                if (item.photoUrl != null) ...[
-                  const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      item.photoUrl!,
-                      width: double.infinity,
-                      height: 150,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const _NoPhoto(),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ],
-                if (item.status == 'PENDING') ...[
-                  const SizedBox(height: 9),
-                  const Row(
-                    children: [
-                      Icon(Icons.image_outlined,
-                          size: 16, color: GreenLoopColors.forest2),
-                      SizedBox(width: 5),
-                      Text('Buka untuk periksa foto dan detail',
-                          style: TextStyle(
-                              color: GreenLoopColors.forest2, fontSize: 11)),
-                    ],
-                  ),
-                ] else if (item.courierName != null) ...[
-                  const SizedBox(height: 7),
-                  Text('Kurir: ${item.courierName}',
-                      style: const TextStyle(
-                          color: GreenLoopColors.forest2, fontSize: 12)),
-                ],
+                ),
+                _StatusPill(status: item.status, label: item.statusLabel),
               ],
             ),
-          ),
+            const SizedBox(height: 9),
+            Text(
+              item.businessName.isEmpty
+                  ? item.mitraName
+                  : '${item.businessName} · ${item.mitraName}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              '${_dateLabel(item.pickupDate)} · ${item.timeSlot}',
+              style: const TextStyle(
+                color: GreenLoopColors.muted,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${item.wasteTypeLabel} · ${_weightLabel(item.estimatedWeight)} kg',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Armada: ${item.vehicle}',
+              style: const TextStyle(
+                color: GreenLoopColors.muted,
+                fontSize: 12,
+              ),
+            ),
+            if (item.photoUrl != null) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  item.photoUrl!,
+                  width: double.infinity,
+                  height: 150,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const _NoPhoto(),
+                ),
+              ),
+            ],
+            if (item.status == 'PENDING') ...[
+              const SizedBox(height: 9),
+              const Row(
+                children: [
+                  Icon(
+                    Icons.image_outlined,
+                    size: 16,
+                    color: GreenLoopColors.forest2,
+                  ),
+                  SizedBox(width: 5),
+                  Text(
+                    'Buka untuk periksa foto dan detail',
+                    style: TextStyle(
+                      color: GreenLoopColors.forest2,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ] else if (item.courierName != null) ...[
+              const SizedBox(height: 7),
+              Text(
+                'Kurir: ${item.courierName}',
+                style: const TextStyle(
+                  color: GreenLoopColors.forest2,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _PickupDetailsSheet extends StatelessWidget {
@@ -431,92 +458,98 @@ class _PickupDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SafeArea(
-        child: DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.85,
-          minChildSize: 0.55,
-          maxChildSize: 0.95,
-          builder: (context, controller) => ListView(
-            controller: controller,
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
+    child: DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.85,
+      minChildSize: 0.55,
+      maxChildSize: 0.95,
+      builder: (context, controller) => ListView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(18, 0, 18, 20),
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(item.code,
-                        style: const TextStyle(
-                            fontSize: 21, fontWeight: FontWeight.w800)),
+              Expanded(
+                child: Text(
+                  item.code,
+                  style: const TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w800,
                   ),
-                  _StatusPill(status: item.status, label: item.statusLabel),
-                ],
+                ),
               ),
-              const SizedBox(height: 14),
-              if (item.photoUrl != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(15),
-                  child: Image.network(
-                    item.photoUrl!,
-                    height: 210,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const _NoPhoto(),
-                  ),
-                )
-              else
-                const _NoPhoto(),
-              const SizedBox(height: 16),
-              _DetailLine(label: 'Mitra', value: item.mitraName),
-              if (item.businessName.isNotEmpty)
-                _DetailLine(label: 'Nama usaha', value: item.businessName),
-              if (item.mitraEmail.isNotEmpty)
-                _DetailLine(label: 'Email', value: item.mitraEmail),
-              _DetailLine(label: 'Alamat', value: item.address),
-              _DetailLine(
-                  label: 'Jenis limbah', value: item.wasteTypeLabel),
-              _DetailLine(
-                  label: 'Estimasi berat',
-                  value: '${_weightLabel(item.estimatedWeight)} kg'),
-              _DetailLine(
-                  label: 'Jadwal',
-                  value: '${_dateLabel(item.pickupDate)} · ${item.timeSlot}'),
-              _DetailLine(label: 'Armada', value: item.vehicle),
-              _DetailLine(
-                  label: 'Catatan mitra',
-                  value: item.notes.isEmpty ? 'Tidak ada catatan' : item.notes),
-              if (item.latitude != null && item.longitude != null)
-                _DetailLine(
-                  label: 'Titik peta',
-                  value:
-                      '${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}',
-                ),
-              if (item.courierName != null)
-                _DetailLine(label: 'Kurir', value: item.courierName!),
-              if (onApprove != null || onReject != null) ...[
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 50,
-                  child: FilledButton.icon(
-                    onPressed: onApprove,
-                    icon: const Icon(Icons.check),
-                    label: const Text('Setujui & cari kurir'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: onReject,
-                    icon: const Icon(Icons.close),
-                    label: const Text('Tolak pengajuan'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFC74242),
-                    ),
-                  ),
-                ),
-              ],
+              _StatusPill(status: item.status, label: item.statusLabel),
             ],
           ),
-        ),
-      );
+          const SizedBox(height: 14),
+          if (item.photoUrl != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.network(
+                item.photoUrl!,
+                height: 210,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const _NoPhoto(),
+              ),
+            )
+          else
+            const _NoPhoto(),
+          const SizedBox(height: 16),
+          _DetailLine(label: 'Mitra', value: item.mitraName),
+          if (item.businessName.isNotEmpty)
+            _DetailLine(label: 'Nama usaha', value: item.businessName),
+          if (item.mitraEmail.isNotEmpty)
+            _DetailLine(label: 'Email', value: item.mitraEmail),
+          _DetailLine(label: 'Alamat', value: item.address),
+          _DetailLine(label: 'Jenis limbah', value: item.wasteTypeLabel),
+          _DetailLine(
+            label: 'Estimasi berat',
+            value: '${_weightLabel(item.estimatedWeight)} kg',
+          ),
+          _DetailLine(
+            label: 'Jadwal',
+            value: '${_dateLabel(item.pickupDate)} · ${item.timeSlot}',
+          ),
+          _DetailLine(label: 'Armada', value: item.vehicle),
+          _DetailLine(
+            label: 'Catatan mitra',
+            value: item.notes.isEmpty ? 'Tidak ada catatan' : item.notes,
+          ),
+          if (item.latitude != null && item.longitude != null)
+            _DetailLine(
+              label: 'Titik peta',
+              value:
+                  '${item.latitude!.toStringAsFixed(5)}, ${item.longitude!.toStringAsFixed(5)}',
+            ),
+          if (item.courierName != null)
+            _DetailLine(label: 'Kurir', value: item.courierName!),
+          if (onApprove != null || onReject != null) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 50,
+              child: FilledButton.icon(
+                onPressed: onApprove,
+                icon: const Icon(Icons.check),
+                label: const Text('Setujui & cari kurir'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: onReject,
+                icon: const Icon(Icons.close),
+                label: const Text('Tolak pengajuan'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFC74242),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
 }
 
 class _DetailLine extends StatelessWidget {
@@ -527,20 +560,22 @@ class _DetailLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 11, color: GreenLoopColors.muted)),
-            const SizedBox(height: 2),
-            Text(value,
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600)),
-          ],
+    padding: const EdgeInsets.only(bottom: 12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 11, color: GreenLoopColors.muted),
         ),
-      );
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+      ],
+    ),
+  );
 }
 
 class _StatusPill extends StatelessWidget {
@@ -564,9 +599,14 @@ class _StatusPill extends StatelessWidget {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(label,
-          style: TextStyle(
-              color: color, fontSize: 10, fontWeight: FontWeight.w700)),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
@@ -588,32 +628,35 @@ class _MessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(top: 10),
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: GreenLoopColors.border),
-          borderRadius: BorderRadius.circular(18),
+    margin: const EdgeInsets.only(top: 10),
+    padding: const EdgeInsets.all(22),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border.all(color: GreenLoopColors.border),
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Column(
+      children: [
+        Icon(icon, size: 34, color: GreenLoopColors.forest2),
+        const SizedBox(height: 10),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-        child: Column(
-          children: [
-            Icon(icon, size: 34, color: GreenLoopColors.forest2),
-            const SizedBox(height: 10),
-            Text(title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 5),
-            Text(message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 12, color: GreenLoopColors.muted)),
-            if (actionLabel != null) ...[
-              const SizedBox(height: 12),
-              OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
-            ],
-          ],
+        const SizedBox(height: 5),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 12, color: GreenLoopColors.muted),
         ),
-      );
+        if (actionLabel != null) ...[
+          const SizedBox(height: 12),
+          OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
+        ],
+      ],
+    ),
+  );
 }
 
 class _NoPhoto extends StatelessWidget {
@@ -621,26 +664,27 @@ class _NoPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        height: 190,
-        decoration: BoxDecoration(
-          color: GreenLoopColors.mint,
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.image_not_supported_outlined, size: 32),
-              SizedBox(height: 6),
-              Text('Foto tidak tersedia'),
-            ],
-          ),
-        ),
-      );
+    height: 190,
+    decoration: BoxDecoration(
+      color: GreenLoopColors.mint,
+      borderRadius: BorderRadius.circular(15),
+    ),
+    child: const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.image_not_supported_outlined, size: 32),
+          SizedBox(height: 6),
+          Text('Foto tidak tersedia'),
+        ],
+      ),
+    ),
+  );
 }
 
 String _dateLabel(DateTime date) =>
     '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
 
-String _weightLabel(double weight) =>
-    weight == weight.roundToDouble() ? weight.toInt().toString() : weight.toStringAsFixed(1);
+String _weightLabel(double weight) => weight == weight.roundToDouble()
+    ? weight.toInt().toString()
+    : weight.toStringAsFixed(1);

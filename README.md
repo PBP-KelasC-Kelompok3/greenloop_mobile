@@ -83,7 +83,7 @@ Dengan GreenLoop, Mitra B2B tidak hanya menyetor limbah organik, tetapi juga men
 | **Mitra & Pickup Scheduling** | • Menyediakan halaman *Dashboard* khusus untuk pengguna berstatus Mitra B2B (kafe, restoran, hotel).<br>• Fitur kalender digital jadwal penjemputan sampah organik (*Smart Pick-Up Scheduler*).<br>• Kolom pengisian estimasi volume limbah harian untuk menentukan jenis armada.<br>• *Digital Image Validation*: Mitra wajib mengunggah foto kualitas limbah kulit buah/sayur segar mereka di mobile. Kurir hanya akan ditugaskan berangkat jika foto tersebut sudah diverifikasi dan disetujui (*Approved*) oleh admin di sistem. Jika foto menunjukkan sampah tidak layak, pesanan ditolak secara digital sejak awal di mobile tanpa membuang bensin kurir.<br>• Menyediakan tabel pemantauan riwayat dan status penjemputan. | Filza |
 | **Courier & Route Management** | • Menyediakan halaman *Dashboard* khusus kurir lapangan berbasis tampilan seluler responsif (*mobile-responsive*).<br>• Mengintegrasikan OpenStreetMap untuk memetakan lokasi mitra yang sudah lolos verifikasi foto secara otomatis dan menampilkan rute perjalanan penjemputan paling optimal secara berurutan.<br>• Menyediakan tombol kendali kurir (Mulai Perjalanan, Selesai Pikap) dan formulir digital untuk menginput data berat bersih sampah (kg) secara *real-time* langsung di lokasi penjemputan. | Rafata |
 | **Waste & Reward System** | • Mengelola komputasi backend untuk pemrosesan basis data limbah organik yang masuk.<br>• Bertanggung jawab atas jalannya fungsi algoritma otomatis konversi berat sampah menjadi poin ekonomi (*Waste-to-Points System*).<br>• Mencatat riwayat perolehan poin mitra.<br>• Menyediakan modul sistem penukaran poin menjadi voucher atau kupon potongan harga belanja produk sabun di platform. | Akbar |
-| **E-Commerce** | • Mengelola seluruh alur toko online publik untuk penjualan ritel (*B2C*) maupun grosir (*B2B* untuk fasilitas/amenitas hotel).<br>• Menampilkan halaman katalog produk, detail deskripsi produk sabun premium (kemasan *aluminum foil stand pouch*), keranjang belanja (*cart*), dan halaman *checkout/order* otomatis.<br>• Mengintegrasikan gerbang pembayaran digital otomatis via Midtrans API (QRIS/E-Wallet/VA Bank).<br>• Mengintegrasikan kalkulator perhitungan biaya ongkos kirim otomatis via RajaOngkir API berdasarkan berat produk. | Fayadh |
+| **E-Commerce** | • Mengelola seluruh alur toko online publik untuk penjualan ritel (*B2C*) maupun grosir (*B2B* untuk fasilitas/amenitas hotel).<br>• Menampilkan halaman katalog produk, detail deskripsi produk sabun premium (kemasan *aluminum foil stand pouch*), keranjang belanja (*cart*), dan halaman *checkout/order* otomatis.<br>• Mengintegrasikan gerbang pembayaran digital otomatis via Midtrans API (QRIS/E-Wallet/VA Bank).<br>• Mengintegrasikan kalkulator perhitungan biaya ongkos kirim otomatis via RajaOngkir API berdasarkan berat produk. |  |
 
 ## 6. Public API
 
@@ -126,7 +126,7 @@ Untuk Checkpoint 1, deployment menampilkan Django rocket page.
 
 ## 9. Figma
 
-Figma: https://www.figma.com/design/dbY780FG3lgq1ffLdyuBm3/Untitled?node-id=0-1&p=f
+Figma: https://www.figma.com/design/tN9rzbc7idULMRxVfqeJ7v/GreenLoop-Mobile-App?node-id=2-17&t=tdtTamFeKdA5jiMn-1
 
 ## 10. Arsitektur dan Alur Integrasi Sistem (Mobile App & Web Backend)
 

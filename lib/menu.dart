@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'features/auth/services/auth_service.dart';
 import 'features/courier/presentation/courier_page.dart';
 
 class MyHomePage extends StatelessWidget {
@@ -13,7 +14,7 @@ class MyHomePage extends StatelessWidget {
     ItemHomepage("Tambah Data", Icons.add_circle, Colors.amber.shade700),
     ItemHomepage("Live Impact", Icons.eco, Colors.teal),
     ItemHomepage("Halaman Kurir", Icons.local_shipping, const Color(0xFF176B45), 
-      page: const CourierDashboardPage()),
+      page: CourierDashboardPage(authService: defaultAuthService)),
     ItemHomepage("Logout", Icons.logout, Colors.redAccent),
   ];
 

@@ -212,6 +212,34 @@ class ApiClient {
     return response;
   }
 
+  /// POST form-encoded fields for legacy Django views that read request.POST.
+  Future<http.Response> postForm(
+    String path, {
+    required Map<String, String> fields,
+    bool requireCsrf = true,
+  }) async {
+    final uri = _buildUri(path);
+    var token = requireCsrf ? await fetchCsrfToken() : null;
+
+    Future<http.Response> sendRequest() => _client.post(
+          uri,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            if (token != null) 'X-CSRFToken': token,
+          },
+          body: fields,
+        );
+
+    var response = await sendRequest();
+    if (requireCsrf && response.statusCode == 403) {
+      token = await fetchCsrfToken(force: true);
+      response = await sendRequest();
+    }
+    _extractCsrfFromResponse(response);
+    return response;
+  }
+
   /// Send a multipart POST containing one upload and CSRF protection.
   Future<http.Response> postMultipart(
     String path, {

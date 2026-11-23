@@ -1,415 +1,337 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/network/api_client.dart';
-import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
 import '../../auth/data/auth_models.dart';
 import '../../auth/presentation/auth_pages.dart' show WelcomePage;
 import '../../auth/services/auth_service.dart';
+import '../../courier/presentation/courier_page.dart';
+import '../../mitra/data/mitra_shop_service.dart';
 import '../../mitra/presentation/mitra_edit_profile_page.dart';
 import '../../mitra/presentation/mitra_faq_page.dart';
-import '../../mitra/presentation/mitra_location_picker.dart';
+import '../../mitra/presentation/mitra_orders_page.dart';
+import '../../mitra/presentation/mitra_reward_page.dart';
 
 export '../../auth/data/auth_models.dart' show UserRole, UserRoleData;
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({
-    required this.role,
-    this.authService,
-    super.key,
-  });
+  const ProfilePage({required this.role, this.authService, super.key});
 
   final UserRole role;
   final AuthService? authService;
 
-  void _notConnected(BuildContext context, String feature) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$feature belum terhubung ke API.')));
-  }
-
   @override
   Widget build(BuildContext context) {
-    final effectiveAuth = authService ?? defaultAuthService;
+    final auth = authService ?? defaultAuthService;
     return ValueListenableBuilder<UserProfile?>(
-      valueListenable: effectiveAuth.currentUserNotifier,
-      builder: (context, currentUser, _) {
-    final userAccount = currentUser?.user;
-    final isMitra = role == UserRole.mitra;
+      valueListenable: auth.currentUserNotifier,
+      builder: (context, profile, _) {
+        final isMitra = role == UserRole.mitra;
+        final account = profile?.user;
+        final mitra = profile?.mitraProfile;
+        final businessName = mitra?.businessName?.trim() ?? '';
+        final displayName = isMitra && businessName.isNotEmpty
+            ? businessName
+            : (account?.displayName ?? role.label);
+        final email = account?.email ?? '';
+        final subtitle = isMitra
+            ? [mitra?.businessType, mitra?.picName]
+                  .where((value) => value?.trim().isNotEmpty == true)
+                  .join(' · ')
+            : email;
+        final menu = _menuFor(role);
 
-    final businessName = currentUser?.mitraProfile?.businessName?.trim();
-    final displayName = isMitra && businessName?.isNotEmpty == true
-        ? businessName!
-        : (userAccount != null && userAccount.displayName.isNotEmpty
-              ? userAccount.displayName
-              : (isMitra ? 'Profil Mitra' : 'Profil ${role.label}'));
-
-    final displayEmail = userAccount != null && userAccount.email.isNotEmpty
-        ? userAccount.email
-        : 'Data akun akan tampil setelah API tersambung';
-    final profileSubtitle = isMitra
-        ? [
-            currentUser?.mitraProfile?.businessType,
-            currentUser?.mitraProfile?.picName,
-          ].where((part) => part?.trim().isNotEmpty == true).join(' · ')
-        : displayEmail;
-
-    final avatarLetter = userAccount != null && userAccount.displayName.isNotEmpty
-        ? userAccount.displayName.substring(0, 1).toUpperCase()
-        : (isMitra ? 'M' : role.label.substring(0, 1));
-
-    final menu = isMitra
-        ? const [
-            _ProfileMenuData(
-              Icons.business_outlined,
-              'Data Usaha',
-              'Informasi usaha',
-            ),
-            _ProfileMenuData(
-              Icons.confirmation_num_outlined,
-              'Voucher Saya',
-              'Voucher dan reward',
-            ),
-            _ProfileMenuData(
-              Icons.inventory_2_outlined,
-              'Pesanan Saya',
-              'Riwayat pesanan',
-            ),
-            _ProfileMenuData(
-              Icons.info_outline,
-              'Bantuan & FAQ',
-              'Pusat bantuan',
-            ),
-          ]
-        : role == UserRole.courier
-        ? const [
-            _ProfileMenuData(
-              Icons.local_shipping_outlined,
-              'Informasi Kendaraan',
-              'Data kendaraan',
-            ),
-            _ProfileMenuData(
-              Icons.receipt_long_outlined,
-              'Riwayat Jemput',
-              'Riwayat penjemputan',
-            ),
-            _ProfileMenuData(
-              Icons.info_outline,
-              'Bantuan & FAQ',
-              'Pusat bantuan',
-            ),
-          ]
-        : const [
-            _ProfileMenuData(
-              Icons.shopping_bag_outlined,
-              'Pesanan Saya',
-              'Riwayat pesanan',
-            ),
-            _ProfileMenuData(
-              Icons.card_giftcard_outlined,
-              'Reward Saya',
-              'Poin dan reward',
-            ),
-            _ProfileMenuData(
-              Icons.info_outline,
-              'Bantuan & FAQ',
-              'Pusat bantuan',
-            ),
-          ];
-
-    return Scaffold(
-      backgroundColor: GreenLoopColors.surface,
-      appBar: AppBar(
-        title: const Text(
-          'Profil',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Edit profil',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => isMitra
-                      ? MitraEditProfilePage(authService: effectiveAuth)
-                      : EditProfilePage(
-                          role: role,
-                          authService: effectiveAuth,
-                        ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.edit_outlined),
-            style: IconButton.styleFrom(
-              foregroundColor: GreenLoopColors.circleGreen,
-            ),
+        return Scaffold(
+          backgroundColor: GreenLoopColors.surface,
+          appBar: AppBar(
+            title: const Text('Profil'),
+            actions: [
+              IconButton(
+                tooltip: 'Edit profil',
+                onPressed: () => _openEdit(context, auth, role),
+                icon: const Icon(Icons.edit_outlined),
+                color: GreenLoopColors.forest2,
+              ),
+              const SizedBox(width: 8),
+            ],
           ),
-          const SizedBox(width: 12),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 5, 18, 22),
-        children: [
-          // PROFILE IDENTITY
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: GreenLoopColors.border),
-              borderRadius: BorderRadius.circular(17),
-            ),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: GreenLoopColors.forest2,
-                  child: Text(
-                    avatarLetter,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+          body: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 22),
+            children: [
+              _IdentityCard(
+                name: displayName,
+                subtitle: subtitle.isEmpty
+                    ? (isMitra ? 'Profil usaha mitra' : 'Data akun GreenLoop')
+                    : subtitle,
+                badge: isMitra ? 'Mitra B2B' : role.label,
+              ),
+              if (isMitra) ...[
+                const SizedBox(height: 10),
+                _MitraAddressCard(
+                  profile: mitra,
+                  onEdit: () => _openEdit(context, auth, role),
                 ),
-                const SizedBox(height: 9),
-                Text(
-                  displayName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  profileSubtitle.isEmpty ? displayEmail : profileSubtitle,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: GreenLoopColors.textMuted,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 9),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: GreenLoopColors.mint,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    isMitra ? 'Mitra B2B' : role.label,
-                    style: const TextStyle(
-                      color: GreenLoopColors.circleGreen,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                if (isMitra) ...[
-                  const SizedBox(height: 12),
-                  const Divider(height: 1, color: GreenLoopColors.border),
-                  const SizedBox(height: 12),
-                  const Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Profil usaha mitra',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: GreenLoopColors.textMuted,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
               ],
-            ),
-          ),
-
-          // PICKUP ADDRESS (MITRA)
-          if (isMitra) ...[
-            const SizedBox(height: 10),
-            _MitraAddressCard(
-              profile: currentUser?.mitraProfile,
-              onEdit: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => MitraEditProfilePage(authService: effectiveAuth),
+              const SizedBox(height: 10),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: GreenLoopColors.border),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-              ),
-            ),
-          ],
-
-          // PROFILE MENU
-          const SizedBox(height: 10),
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: GreenLoopColors.border),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Material(
-                color: Colors.white,
-                child: Column(
-                  children: [
-                    for (var i = 0; i < menu.length; i++) ...[
-                      ListTile(
-                        dense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 2,
-                        ),
-                        leading: CircleAvatar(
-                          radius: 18,
-                          backgroundColor: GreenLoopColors.mint,
-                          child: Icon(
-                            menu[i].icon,
-                            size: 19,
-                            color: GreenLoopColors.forest2,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Column(
+                    children: [
+                      for (var index = 0; index < menu.length; index++) ...[
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 1,
+                          ),
+                          leading: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: GreenLoopColors.mint,
+                            child: Icon(
+                              menu[index].icon,
+                              size: 19,
+                              color: GreenLoopColors.forest2,
+                            ),
+                          ),
+                          title: Text(
+                            menu[index].title,
+                            style: const TextStyle(
+                              color: GreenLoopColors.textInk,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          subtitle: Text(
+                            menu[index].subtitle,
+                            style: const TextStyle(
+                              color: GreenLoopColors.textMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.chevron_right,
+                            color: GreenLoopColors.muted,
+                          ),
+                          onTap: () => _openMenu(
+                            context,
+                            auth,
+                            role,
+                            menu[index].title,
                           ),
                         ),
-                        title: Text(
-                          menu[i].title,
-                          style: const TextStyle(
-                            color: GreenLoopColors.textInk,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                        if (index < menu.length - 1)
+                          const Divider(
+                            height: 1,
+                            indent: 58,
+                            color: GreenLoopColors.border,
                           ),
-                        ),
-                        subtitle: Text(
-                          menu[i].subtitle,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: GreenLoopColors.textMuted,
-                          ),
-                        ),
-                        trailing: const Icon(
-                          Icons.chevron_right,
-                          color: GreenLoopColors.muted,
-                          size: 20,
-                        ),
-                        onTap: () {
-                          if (isMitra && menu[i].title == 'Data Usaha') {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => MitraEditProfilePage(
-                                  authService: effectiveAuth,
-                                ),
-                              ),
-                            );
-                          } else if (isMitra &&
-                              menu[i].title == 'Bantuan & FAQ') {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const MitraFaqPage(),
-                              ),
-                            );
-                          } else {
-                            _notConnected(context, menu[i].title);
-                          }
-                        },
-                      ),
-                      if (i != menu.length - 1)
-                        const Divider(
-                          height: 1,
-                          indent: 58,
-                          color: GreenLoopColors.border,
-                        ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // LOGOUT
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 47,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Keluar dari Akun'),
-                    content: const Text(
-                      'Apakah kamu yakin ingin keluar dari GreenLoop?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(false),
-                        child: const Text('Batal'),
-                      ),
-                      FilledButton(
-                        onPressed: () => Navigator.of(ctx).pop(true),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFD9534F),
-                        ),
-                        child: const Text('Keluar'),
-                      ),
+                      ],
                     ],
                   ),
-                );
-
-                if (confirm != true || !context.mounted) return;
-
-                try {
-                  await effectiveAuth.logout();
-                  if (!context.mounted) return;
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const WelcomePage(),
-                    ),
-                    (route) => false,
-                  );
-                } catch (e) {
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Gagal logout: $e')),
-                  );
-                }
-              },
-              icon: const Icon(Icons.logout, size: 18),
-              label: const Text(
-                'Keluar',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFD9534F),
-                backgroundColor: const Color(0xFFFBE8E7),
-                side: BorderSide.none,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(13),
                 ),
               ),
-            ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 48,
+                child: FilledButton.icon(
+                  onPressed: () => _confirmLogout(context, auth),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Keluar'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFFFCE9E8),
+                    foregroundColor: const Color(0xFFE9534F),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      );
+        );
       },
     );
   }
+
+  static List<_ProfileMenuData> _menuFor(UserRole role) {
+    if (role == UserRole.mitra) {
+      return const [
+        _ProfileMenuData(Icons.business_outlined, 'Data Usaha', 'Informasi usaha'),
+        _ProfileMenuData(Icons.confirmation_num_outlined, 'Voucher Saya', 'Voucher dan reward'),
+        _ProfileMenuData(Icons.inventory_2_outlined, 'Pesanan Saya', 'Riwayat pesanan'),
+        _ProfileMenuData(Icons.info_outline, 'Bantuan & FAQ', 'Pusat bantuan'),
+      ];
+    }
+    if (role == UserRole.courier) {
+      return const [
+        _ProfileMenuData(Icons.directions_car_outlined, 'Informasi Kendaraan', 'Data kendaraan'),
+        _ProfileMenuData(Icons.receipt_long_outlined, 'Riwayat Jemput', 'Riwayat penjemputan'),
+        _ProfileMenuData(Icons.info_outline, 'Bantuan & FAQ', 'Pusat bantuan'),
+      ];
+    }
+    return const [
+      _ProfileMenuData(Icons.shopping_bag_outlined, 'Pesanan Saya', 'Riwayat pesanan'),
+      _ProfileMenuData(Icons.card_giftcard_outlined, 'Reward Saya', 'Poin dan reward'),
+      _ProfileMenuData(Icons.info_outline, 'Bantuan & FAQ', 'Pusat bantuan'),
+    ];
+  }
+
+  static void _openEdit(BuildContext context, AuthService auth, UserRole role) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => role == UserRole.mitra
+            ? MitraEditProfilePage(authService: auth)
+            : EditProfilePage(role: role, authService: auth),
+      ),
+    );
+  }
+
+  static void _openMenu(
+    BuildContext context,
+    AuthService auth,
+    UserRole role,
+    String title,
+  ) {
+    if (role == UserRole.mitra) {
+      switch (title) {
+        case 'Data Usaha':
+          _openEdit(context, auth, role);
+          return;
+        case 'Voucher Saya':
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const MitraRewardPage()),
+          );
+          return;
+        case 'Pesanan Saya':
+          // Reuse the same authenticated API service and order page as Belanja.
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => MitraOrdersPage(
+                service: MitraShopService(auth),
+              ),
+            ),
+          );
+          return;
+        case 'Bantuan & FAQ':
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const MitraFaqPage()),
+          );
+          return;
+      }
+    }
+    if (role == UserRole.courier && title == 'Informasi Kendaraan') {
+      _openEdit(context, auth, role);
+      return;
+    }
+    if (role == UserRole.courier && title == 'Riwayat Jemput') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => CourierDashboardPage(
+            authService: auth,
+            mode: CourierPageMode.recap,
+          ),
+        ),
+      );
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$title belum tersedia untuk akun ini.')),
+    );
+  }
+
+  static Future<void> _confirmLogout(
+    BuildContext context,
+    AuthService auth,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Keluar dari akun?'),
+        content: const Text('Kamu perlu masuk kembali untuk membuka profil.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await auth.logout();
+      if (!context.mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(
+          builder: (_) => WelcomePage(authService: auth, skipSessionCheck: true),
+        ),
+        (_) => false,
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal keluar: $error')),
+      );
+    }
+  }
 }
 
-String _mitraAddress(MitraProfileData? profile) {
-  if (profile == null) return 'Alamat usaha belum tersedia.';
-  final locality = [
-    profile.kelurahan,
-    profile.kecamatan,
-    profile.kota,
-    profile.provinsi,
-  ].where((part) => part?.trim().isNotEmpty == true).join(', ');
-  final address = [profile.addressDetail, locality]
-      .where((part) => part?.trim().isNotEmpty == true)
-      .join(', ');
-  return address.isEmpty ? 'Alamat usaha belum tersedia.' : address;
+class _IdentityCard extends StatelessWidget {
+  const _IdentityCard({required this.name, required this.subtitle, required this.badge});
+
+  final String name;
+  final String subtitle;
+  final String badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? 'G' : name.trim()[0].toUpperCase();
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: GreenLoopColors.border),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 25,
+            backgroundColor: GreenLoopColors.forest2,
+            child: Text(initial, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: GreenLoopColors.ink)),
+                const SizedBox(height: 2),
+                Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: GreenLoopColors.muted)),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                  decoration: const BoxDecoration(color: GreenLoopColors.mint, borderRadius: BorderRadius.all(Radius.circular(20))),
+                  child: Text(badge, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: GreenLoopColors.forest2)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _MitraAddressCard extends StatelessWidget {
@@ -420,96 +342,104 @@ class _MitraAddressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasPoint = profile?.latitude != null && profile?.longitude != null;
+    final latitude = profile?.latitude;
+    final longitude = profile?.longitude;
+    final hasPoint = latitude != null && longitude != null;
+    final point = hasPoint ? LatLng(latitude, longitude) : const LatLng(-6.3627, 106.82715);
+    final address = [
+      profile?.addressDetail,
+      profile?.kelurahan,
+      profile?.kecamatan,
+      profile?.kota,
+      profile?.provinsi,
+    ].where((part) => part?.trim().isNotEmpty == true).join(', ');
+
     return Container(
-      padding: const EdgeInsets.all(13),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
         border: Border.all(color: GreenLoopColors.border),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const CircleAvatar(
-            radius: 18,
-            backgroundColor: GreenLoopColors.mint,
-            child: Icon(Icons.location_on_outlined, size: 20, color: GreenLoopColors.forest2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 190,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: hasPoint
+                  ? FlutterMap(
+                      options: MapOptions(
+                        initialCenter: point,
+                        initialZoom: 15,
+                        interactionOptions: const InteractionOptions(flags: InteractiveFlag.none),
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.greenloop.mobile',
+                        ),
+                        MarkerLayer(markers: [
+                          Marker(
+                            point: point,
+                            width: 42,
+                            height: 48,
+                            child: const Icon(Icons.location_pin, size: 42, color: GreenLoopColors.forest2),
+                          ),
+                        ]),
+                        const RichAttributionWidget(
+                          attributions: [TextSourceAttribution('© OpenStreetMap contributors')],
+                        ),
+                      ],
+                    )
+                  : Container(
+                      color: GreenLoopColors.mint,
+                      alignment: Alignment.center,
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.location_on_outlined, size: 34, color: GreenLoopColors.forest2),
+                          SizedBox(height: 5),
+                          Text('Titik alamat belum disimpan', style: TextStyle(color: GreenLoopColors.muted, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+            ),
           ),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Alamat Penjemputan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 3),
-            Text(_mitraAddress(profile), style: const TextStyle(fontSize: 12, height: 1.4, color: GreenLoopColors.textMuted)),
-          ])),
-          Icon(profile?.locationLocked == true ? Icons.lock_outline : Icons.lock_open, size: 17, color: GreenLoopColors.circleGreen),
-        ]),
-        const SizedBox(height: 10),
-        if (hasPoint)
-          MitraLocationPicker(
-            initialPoint: LatLng(profile!.latitude!, profile!.longitude!),
-            editable: false,
-            onPointChanged: (_) {},
-            onLocationValidityChanged: (_) {},
-            onLocationNeedsResolution: () {},
-          )
-        else
-          Container(
-            height: 90,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: GreenLoopColors.mint, borderRadius: BorderRadius.circular(12)),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Titik peta belum ditentukan', style: TextStyle(fontSize: 12, color: GreenLoopColors.textMuted)),
-              TextButton.icon(onPressed: onEdit, icon: const Icon(Icons.map_outlined, size: 17), label: const Text('Atur lokasi usaha')),
-            ]),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.lock_outline, size: 17, color: GreenLoopColors.forest2),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  address.isEmpty ? 'Alamat usaha belum tersedia.' : address,
+                  style: const TextStyle(fontSize: 12, height: 1.4, color: GreenLoopColors.muted),
+                ),
+              ),
+            ],
           ),
-      ]),
+          if (profile?.courierNotes?.trim().isNotEmpty == true) ...[
+            const SizedBox(height: 4),
+            Text('Catatan kurir: ${profile!.courierNotes}', style: const TextStyle(fontSize: 11, color: GreenLoopColors.forest2)),
+          ],
+        ],
+      ),
     );
   }
 }
 
-class _ProfileMetric extends StatelessWidget {
-  const _ProfileMetric({required this.value, required this.label});
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-    child: Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            color: GreenLoopColors.textMuted,
-            fontSize: 11,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
 class _ProfileMenuData {
   const _ProfileMenuData(this.icon, this.title, this.subtitle);
-
   final IconData icon;
   final String title;
   final String subtitle;
 }
 
-// EDIT PROFILE
-
 class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({
-    required this.role,
-    this.authService,
-    super.key,
-  });
+  const EditProfilePage({required this.role, this.authService, super.key});
 
   final UserRole role;
   final AuthService? authService;
@@ -520,252 +450,142 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
-  bool _isSaving = false;
+  final _firstName = TextEditingController();
+  final _lastName = TextEditingController();
+  final _email = TextEditingController();
+  final _plateNumber = TextEditingController();
+  late final AuthService _auth;
+  String _vehicleType = 'pickup_bak';
+  bool _saving = false;
 
-  final Map<String, TextEditingController> _fields = {
-    for (final key in [
-      'username',
-      'email',
-      'first_name',
-      'last_name',
-      'business_name',
-      'business_type',
-      'pic_name',
-      'phone_number',
-      'operational_hours',
-      'courier_notes',
-      'provinsi',
-      'kota',
-      'kecamatan',
-      'kelurahan',
-      'address_detail',
-      'plate_number',
-      'vehicle_type',
-    ])
-      key: TextEditingController(),
-  };
-
-  AuthService get _effectiveAuth => widget.authService ?? defaultAuthService;
+  bool get _isCourier => widget.role == UserRole.courier;
 
   @override
   void initState() {
     super.initState();
-    final current = _effectiveAuth.currentUser;
-    if (current != null) {
-      _fields['username']!.text = current.user.username;
-      _fields['email']!.text = current.user.email;
-      _fields['first_name']!.text = current.user.firstName;
-      _fields['last_name']!.text = current.user.lastName;
-
-      if (current.mitraProfile != null) {
-        final m = current.mitraProfile!;
-        _fields['business_name']!.text = m.businessName ?? '';
-        _fields['business_type']!.text = m.businessType ?? '';
-        _fields['pic_name']!.text = m.picName ?? '';
-        _fields['phone_number']!.text = m.phoneNumber ?? '';
-        _fields['operational_hours']!.text = m.operationalHours ?? '';
-        _fields['courier_notes']!.text = m.courierNotes ?? '';
-        _fields['provinsi']!.text = m.provinsi ?? '';
-        _fields['kota']!.text = m.kota ?? '';
-        _fields['kecamatan']!.text = m.kecamatan ?? '';
-        _fields['kelurahan']!.text = m.kelurahan ?? '';
-        _fields['address_detail']!.text = m.addressDetail ?? '';
-      }
-
-      if (current.courierProfile != null) {
-        final c = current.courierProfile!;
-        _fields['plate_number']!.text = c.plateNumber ?? '';
-        _fields['vehicle_type']!.text = c.vehicleType ?? '';
-      }
+    _auth = widget.authService ?? defaultAuthService;
+    final account = _auth.currentUser?.user;
+    _firstName.text = account?.firstName ?? '';
+    _lastName.text = account?.lastName ?? '';
+    _email.text = account?.email ?? '';
+    final courier = _auth.currentUser?.courierProfile;
+    _plateNumber.text = courier?.plateNumber ?? '';
+    if (courier?.vehicleType == 'motor_box' || courier?.vehicleType == 'pickup_bak') {
+      _vehicleType = courier!.vehicleType!;
     }
   }
 
   @override
   void dispose() {
-    for (final controller in _fields.values) {
-      controller.dispose();
-    }
+    _firstName.dispose();
+    _lastName.dispose();
+    _email.dispose();
+    _plateNumber.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    FocusScope.of(context).unfocus();
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isSaving = true;
-      });
-
-      try {
-        final payload = <String, dynamic>{
-          'username': _fields['username']!.text.trim(),
-          'email': _fields['email']!.text.trim(),
-          'first_name': _fields['first_name']!.text.trim(),
-          'last_name': _fields['last_name']!.text.trim(),
-        };
-
-        if (widget.role == UserRole.mitra) {
-          for (final key in [
-            'business_name',
-            'pic_name',
-            'phone_number',
-            'operational_hours',
-            'courier_notes',
-            'provinsi',
-            'kota',
-            'kecamatan',
-            'kelurahan',
-            'address_detail',
-          ]) {
-            payload[key] = _fields[key]!.text.trim();
-          }
-
-          final bType = _fields['business_type']!.text.trim();
-          if (bType.isNotEmpty) {
-            final lower = bType.toLowerCase();
-            if (lower.contains('kafe') || lower.contains('coffee') || lower == 'cafe') {
-              payload['business_type'] = 'Kafe / Coffee Shop';
-            } else if (lower.contains('restoran') || lower == 'restaurant') {
-              payload['business_type'] = 'Restoran';
-            } else if (lower.contains('hotel')) {
-              payload['business_type'] = 'Hotel';
-            } else {
-              payload['business_type'] = bType;
-            }
-          }
-        } else if (widget.role == UserRole.courier) {
-          payload['plate_number'] =
-              _fields['plate_number']!.text.trim().toUpperCase();
-
-          final vType = _fields['vehicle_type']!.text.trim().toLowerCase();
-          if (vType.contains('motor')) {
-            payload['vehicle_type'] = 'motor_box';
-          } else if (vType.contains('mobil') || vType.contains('pickup')) {
-            payload['vehicle_type'] = 'pickup_bak';
-          } else {
-            payload['vehicle_type'] = vType;
-          }
-        }
-
-        await _effectiveAuth.updateProfile(payload);
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil berhasil diperbarui.')),
-        );
-        Navigator.of(context).pop();
-      } on ApiException catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memperbarui profil: $e')),
-        );
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isSaving = false;
-          });
-        }
-      }
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+    setState(() => _saving = true);
+    final payload = <String, dynamic>{
+      'first_name': _firstName.text.trim(),
+      'last_name': _lastName.text.trim(),
+      'email': _email.text.trim(),
+      if (_isCourier) ...{
+        'plate_number': _plateNumber.text.trim().toUpperCase(),
+        'vehicle_type': _vehicleType,
+      },
+    };
+    try {
+      await _auth.updateProfile(payload);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profil berhasil diperbarui.')));
+      Navigator.of(context).pop();
+    } on ApiException catch (error) {
+      if (mounted) _showError(error.message);
+    } catch (error) {
+      if (mounted) _showError('Gagal menyimpan profil: $error');
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final roleFields = switch (widget.role) {
-      UserRole.mitra => const [
-        ('business_name', 'Nama Usaha'),
-        ('business_type', 'Jenis Usaha'),
-        ('pic_name', 'Nama Penanggung Jawab'),
-        ('phone_number', 'No. WhatsApp'),
-        ('operational_hours', 'Jam Operasional'),
-        ('provinsi', 'Provinsi'),
-        ('kota', 'Kota / Kabupaten'),
-        ('kecamatan', 'Kecamatan'),
-        ('kelurahan', 'Kelurahan'),
-        ('address_detail', 'Alamat Lengkap'),
-        ('courier_notes', 'Catatan untuk Kurir'),
-      ],
-      UserRole.courier => const [
-        ('plate_number', 'Plat Nomor'),
-        ('vehicle_type', 'Jenis Armada'),
-      ],
-      _ => const <(String, String)>[],
-    };
+  void _showError(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
 
-    return Scaffold(
-      backgroundColor: GreenLoopColors.surface,
-      appBar: AppBar(title: const Text('Edit profil')),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-          children: [
-            Text(
-              'Informasi akun',
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 14),
-            FormFieldTile(
-              controller: _fields['username']!,
-              label: 'Username',
-              validator: requiredField,
-            ),
-            FormFieldTile(
-              controller: _fields['email']!,
-              label: 'Email',
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Email wajib diisi.';
-                }
-                return value.contains('@') && value.contains('.')
-                    ? null
-                    : 'Masukkan email yang valid.';
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: GreenLoopColors.surface,
+    appBar: AppBar(title: const Text('Edit Profil')),
+    body: Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          _ProfileField(label: 'Nama depan', controller: _firstName),
+          const SizedBox(height: 12),
+          _ProfileField(label: 'Nama belakang', controller: _lastName),
+          const SizedBox(height: 12),
+          _ProfileField(
+            label: 'Email',
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            validator: (value) {
+              final text = value?.trim() ?? '';
+              if (text.isEmpty || !text.contains('@')) return 'Masukkan email yang valid.';
+              return null;
+            },
+          ),
+          if (_isCourier) ...[
+            const SizedBox(height: 12),
+            _ProfileField(label: 'Nomor kendaraan', controller: _plateNumber),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _vehicleType,
+              decoration: const InputDecoration(labelText: 'Jenis kendaraan'),
+              items: const [
+                DropdownMenuItem(value: 'motor_box', child: Text('Motor Box')),
+                DropdownMenuItem(value: 'pickup_bak', child: Text('Pickup Bak')),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _vehicleType = value);
               },
             ),
-            FormFieldTile(
-              controller: _fields['first_name']!,
-              label: 'Nama depan',
-            ),
-            FormFieldTile(
-              controller: _fields['last_name']!,
-              label: 'Nama belakang',
-            ),
-            if (roleFields.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                'Informasi ${widget.role.label}',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 12),
-              for (final field in roleFields)
-                FormFieldTile(
-                  controller: _fields[field.$1]!,
-                  label: field.$2,
-                  keyboardType: field.$1 == 'phone_number'
-                      ? TextInputType.phone
-                      : null,
-                  maxLines: field.$1 == 'courier_notes' ? 3 : 1,
-                ),
-            ],
-            const AuthNotice(
-              text: 'Role, status persetujuan, password, dan data sensitif tidak dapat diubah dari halaman ini.',
-            ),
-            const SizedBox(height: 14),
-            GreenLoopButton(
-              label: 'Simpan perubahan',
-              isLoading: _isSaving,
-              onPressed: _isSaving ? null : _save,
-            ),
           ],
-        ),
+          const SizedBox(height: 22),
+          FilledButton(
+            onPressed: _saving ? null : _save,
+            child: _saving
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text('Simpan perubahan'),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+class _ProfileField extends StatelessWidget {
+  const _ProfileField({
+    required this.label,
+    required this.controller,
+    this.keyboardType,
+    this.validator,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final TextInputType? keyboardType;
+  final String? Function(String?)? validator;
+
+  @override
+  Widget build(BuildContext context) => TextFormField(
+    controller: controller,
+    keyboardType: keyboardType,
+    validator: validator,
+    decoration: InputDecoration(labelText: label),
+  );
 }
