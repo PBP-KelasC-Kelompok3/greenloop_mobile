@@ -6,6 +6,7 @@ import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
 import '../../auth/services/auth_service.dart';
 import '../../profile/presentation/profile_pages.dart';
+import '../../waste_reward/presentation/waste_reward_page.dart';
 
 /// Tab bar mana yang dipakai tiap role (komponen "Mobile / Tab Bar ..." di
 /// Figma).
@@ -51,6 +52,12 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
       case 'Beranda':
       case 'Dashboard':
         return AuthenticatedHomePage(role: widget.role);
+      case 'Reward':
+        return WasteRewardPage(
+          onOpenCatalog: () => _selectTab(
+            _tabs.indexWhere((tab) => tab.label == 'Belanja'),
+          ),
+        );
       default:
         return ModulePlaceholderPage(
           title: label,
@@ -63,7 +70,6 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
   /// Nama modul (dan pemiliknya) untuk tab yang belum punya halaman.
   String _moduleFor(String label) => switch (label) {
         'Jemput' || 'Pikap' => 'Mitra & Pickup Scheduling',
-        'Reward' => 'Waste & Reward System',
         'Belanja' || 'Katalog' || 'Keranjang' || 'Pesanan' || 'Produk' =>
           'E-Commerce',
         'Rute' || 'Rekap' || 'Kurir' => 'Courier & Route',

@@ -111,12 +111,29 @@ class DummyVoucher {
     required this.title,
     required this.description,
     required this.cost,
+    required this.category,
+    required this.value,
+    required this.codePrefix,
+    this.premium = false,
     this.validDays = 30,
   });
 
+  /// Nama lengkap, dipakai di daftar tukar M24 ("Diskon Rp10.000").
   final String title;
   final String description;
   final int cost;
+
+  /// Label kecil di kartu voucher M07 ("Diskon", "Gratis Ongkir").
+  final String category;
+
+  /// Nilai besar di kartu voucher M07 ("Rp 10.000", "15%").
+  final String value;
+
+  /// Awalan kode voucher hasil tukar ("GLV-10K").
+  final String codePrefix;
+
+  /// Kartu gelap (hijau tua + lime) untuk voucher grosir B2B.
+  final bool premium;
   final int validDays;
 }
 
@@ -325,43 +342,59 @@ class DummyData {
       title: 'Diskon Rp10.000',
       description: 'Min. belanja Rp50.000',
       cost: 200,
+      category: 'Diskon',
+      value: 'Rp 10.000',
+      codePrefix: 'GLV-10K',
     ),
     DummyVoucher(
       title: 'Gratis Ongkir s.d. Rp15.000',
       description: 'Semua kurir',
       cost: 300,
+      category: 'Gratis Ongkir',
+      value: 's.d. Rp 15.000',
+      codePrefix: 'GLV-ONG',
     ),
     DummyVoucher(
       title: 'Diskon Rp25.000',
       description: 'Min. belanja Rp100.000',
       cost: 450,
+      category: 'Diskon',
+      value: 'Rp 25.000',
+      codePrefix: 'GLV-25K',
     ),
     DummyVoucher(
       title: 'Diskon Grosir B2B 15%',
       description: 'Khusus pembelian grosir mitra',
       cost: 1000,
+      category: 'Diskon Grosir B2B',
+      value: '15%',
+      codePrefix: 'GLV-B2B',
+      premium: true,
     ),
   ];
 
+  /// Riwayat poin terbaru di atas (M07).
   static const pointHistory = [
     DummyPointHistory(
-      title: 'PK-0931 · 35,2 kg terverifikasi',
-      date: '26 Sep 2026',
+      title: 'Setoran PK-0931 · 35,2 kg',
+      date: '26 Sep',
       points: 176,
     ),
     DummyPointHistory(
-      title: 'Tukar voucher Diskon Rp10.000',
-      date: '20 Sep 2026',
+      title: 'Tukar voucher Diskon Rp 10.000',
+      date: '25 Sep',
       points: -200,
     ),
     DummyPointHistory(
-      title: 'PK-0927 · 48,0 kg terverifikasi',
-      date: '12 Sep 2026',
+      title: 'Setoran PK-0927 · 48,0 kg',
+      date: '12 Sep',
       points: 240,
     ),
   ];
 
-  static const redeemedVoucherCode = 'GL-SENJA-7K2Q';
+  /// Voucher yang sudah dimiliki mitra (kartu "Voucher Saya" di M07).
+  static const activeVoucherCode = 'GLV-10K-8FQ2';
+  static const activeVoucherUntil = '25 Des 2026';
 
   // --- Penjemputan --------------------------------------------------------
 

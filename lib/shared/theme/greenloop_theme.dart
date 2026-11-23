@@ -33,6 +33,8 @@ class GreenLoopColors {
   static const green900 = Color(0xFF123A20);
   static const green700 = Color(0xFF1E5B2E);
   static const green100 = Color(0xFFE7F3E1);
+  static const green50 = Color(0xFFF3F8EF);
+  static const green500 = Color(0xFF3D8B47);
   static const lime = Color(0xFFB5E07A);
   static const background = Color(0xFFF6F8F3);
   static const cardBorder = Color(0xFFDCE5D7);

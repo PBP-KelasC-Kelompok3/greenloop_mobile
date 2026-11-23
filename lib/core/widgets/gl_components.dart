@@ -560,12 +560,15 @@ class GLProgressBar extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(height / 2),
       child: SizedBox(
+        width: double.infinity,
         height: height,
         child: Stack(
           children: [
             Positioned.fill(child: ColoredBox(color: trackColor)),
             FractionallySizedBox(
+              alignment: Alignment.centerLeft,
               widthFactor: value.clamp(0.0, 1.0),
+              heightFactor: 1,
               child: ColoredBox(color: fillColor),
             ),
           ],
@@ -996,6 +999,42 @@ class GLUploadBox extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Kotak dengan border putus-putus (kartu "Voucher Saya" di M07, kartu kode
+/// voucher di M24).
+class GLDashedBox extends StatelessWidget {
+  const GLDashedBox({
+    required this.child,
+    this.color = GreenLoopColors.green50,
+    this.borderColor = GreenLoopColors.green500,
+    this.padding = const EdgeInsets.all(12),
+    this.radius = 16,
+    super.key,
+  });
+
+  final Widget child;
+  final Color color;
+  final Color borderColor;
+  final EdgeInsetsGeometry padding;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      foregroundPainter:
+          _DashedBorderPainter(color: borderColor, radius: radius),
+      child: Container(
+        width: double.infinity,
+        padding: padding,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(radius),
+        ),
+        child: child,
       ),
     );
   }
