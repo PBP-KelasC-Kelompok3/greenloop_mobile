@@ -5,6 +5,7 @@ import '../../../core/widgets/gl_components.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
 import '../../auth/services/auth_service.dart';
+import '../../consumer/presentation/consumer_profile_page.dart';
 import '../../profile/presentation/profile_pages.dart';
 import '../../waste_reward/presentation/waste_reward_page.dart';
 
@@ -43,10 +44,20 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
 
   void _selectTab(int index) => setState(() => _selectedIndex = index);
 
+  void _selectTabLabel(String label) =>
+      _selectTab(_tabs.indexWhere((tab) => tab.label == label));
+
   Widget _selectedPage() {
     final label = _tabs[_selectedIndex].label;
 
     switch (label) {
+      case 'Profil' when _tabRole == GLTabRole.konsumen:
+        return ConsumerProfilePage(
+          authService: widget.authService,
+          onOpenOrders: () => _selectTabLabel('Pesanan'),
+          onOpenCart: () => _selectTabLabel('Keranjang'),
+          onOpenCatalog: () => _selectTabLabel('Katalog'),
+        );
       case 'Profil':
         return ProfilePage(role: widget.role, authService: widget.authService);
       case 'Beranda':
@@ -54,9 +65,7 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
         return AuthenticatedHomePage(role: widget.role);
       case 'Reward':
         return WasteRewardPage(
-          onOpenCatalog: () => _selectTab(
-            _tabs.indexWhere((tab) => tab.label == 'Belanja'),
-          ),
+          onOpenCatalog: () => _selectTabLabel('Belanja'),
         );
       default:
         return ModulePlaceholderPage(

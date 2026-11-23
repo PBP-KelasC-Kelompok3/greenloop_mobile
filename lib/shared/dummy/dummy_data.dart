@@ -204,6 +204,51 @@ class DummyOrder {
   final String? trackingNumber;
 }
 
+/// Satu langkah di timeline Lacak Pesanan (M14).
+class DummyTrackingStep {
+  const DummyTrackingStep({required this.status, required this.detail});
+
+  final OrderStatus status;
+  final String detail;
+}
+
+/// Satu baris "Isi paket" di M14.
+class DummyOrderLine {
+  const DummyOrderLine({
+    required this.name,
+    required this.quantity,
+    required this.price,
+  });
+
+  final String name;
+  final int quantity;
+  final int price;
+}
+
+class DummyTrackedOrder {
+  const DummyTrackedOrder({
+    required this.code,
+    required this.status,
+    required this.courier,
+    required this.trackingNumber,
+    required this.payment,
+    required this.steps,
+    required this.lines,
+    required this.wasteSavedKg,
+  });
+
+  final String code;
+
+  /// Status terkini; langkah sebelumnya dianggap selesai.
+  final OrderStatus status;
+  final String courier;
+  final String trackingNumber;
+  final String payment;
+  final List<DummyTrackingStep> steps;
+  final List<DummyOrderLine> lines;
+  final double wasteSavedKg;
+}
+
 class DummyCourier {
   const DummyCourier({
     required this.name,
@@ -540,10 +585,54 @@ class DummyData {
     ),
   ];
 
-  static const consumerName = 'Rina Maharani';
-  static const consumerInitials = 'RM';
-  static const consumerEmail = 'rina@mail.com';
+  /// Konsumen contoh di Figma (M26).
+  static const consumerName = 'Nadia Putri';
+  static const consumerInitials = 'NP';
+  static const consumerUsername = 'nadiaputri';
+  static const consumerEmail = 'nadia.putri@gmail.com';
+  static const consumerJoined = '2 Nov 2026';
   static const consumerAddress = 'Jl. Kenanga No. 8, Sukmajaya, Kota Depok';
+
+  /// Pesanan yang dilacak di M14.
+  static const trackedOrder = DummyTrackedOrder(
+    code: '#GL-260926-0142',
+    status: OrderStatus.shipping,
+    courier: 'JNE REG',
+    trackingNumber: 'JNE0123456789',
+    payment: 'QRIS · Lunas',
+    steps: [
+      DummyTrackingStep(
+        status: OrderStatus.awaitingPayment,
+        detail: '26 Sep, 10.12 · Midtrans Snap',
+      ),
+      DummyTrackingStep(
+        status: OrderStatus.paid,
+        detail: 'QRIS · 26 Sep, 10.14',
+      ),
+      DummyTrackingStep(
+        status: OrderStatus.preparing,
+        detail: 'Gudang GreenLoop Beji · 26 Sep, 15.40',
+      ),
+      DummyTrackingStep(
+        status: OrderStatus.shipping,
+        detail: 'JNE Depok · resi JNE0123456789',
+      ),
+      DummyTrackingStep(
+        status: OrderStatus.delivered,
+        detail: 'Estimasi 30 Sep 2026',
+      ),
+    ],
+    lines: [
+      DummyOrderLine(
+          name: 'Sabun Cuci Piring Jeruk Nipis 500 ml',
+          quantity: 2,
+          price: 32000),
+      DummyOrderLine(
+          name: 'Sabun Mandi Serai & Jeruk 100 g', quantity: 1, price: 28000),
+      DummyOrderLine(name: 'Refill Pouch 1 L', quantity: 1, price: 55000),
+    ],
+    wasteSavedKg: 4.6,
+  );
 
   // --- Kurir --------------------------------------------------------------
 
