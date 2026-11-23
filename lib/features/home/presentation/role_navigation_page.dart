@@ -4,6 +4,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/widgets/gl_components.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
+import '../../admin/presentation/admin_courier_verification_page.dart';
+import '../../admin/presentation/admin_orders_page.dart';
+import '../../admin/presentation/admin_products_page.dart';
 import '../../auth/services/auth_service.dart';
 import '../../consumer/presentation/consumer_profile_page.dart';
 import '../../profile/presentation/profile_pages.dart';
@@ -67,6 +70,14 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
         return WasteRewardPage(
           onOpenCatalog: () => _selectTabLabel('Belanja'),
         );
+      case 'Kurir' when _tabRole == GLTabRole.admin:
+        return AdminCourierVerificationPage(
+          onBack: () => _selectTabLabel('Beranda'),
+        );
+      case 'Produk' when _tabRole == GLTabRole.admin:
+        return const AdminProductsPage();
+      case 'Pesanan' when _tabRole == GLTabRole.admin:
+        return const AdminOrdersPage();
       default:
         return ModulePlaceholderPage(
           title: label,
@@ -79,9 +90,8 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
   /// Nama modul (dan pemiliknya) untuk tab yang belum punya halaman.
   String _moduleFor(String label) => switch (label) {
         'Jemput' || 'Pikap' => 'Mitra & Pickup Scheduling',
-        'Belanja' || 'Katalog' || 'Keranjang' || 'Pesanan' || 'Produk' =>
-          'E-Commerce',
-        'Rute' || 'Rekap' || 'Kurir' => 'Courier & Route',
+        'Belanja' || 'Katalog' || 'Keranjang' || 'Pesanan' => 'E-Commerce',
+        'Rute' || 'Rekap' => 'Courier & Route',
         _ => 'GreenLoop',
       };
 

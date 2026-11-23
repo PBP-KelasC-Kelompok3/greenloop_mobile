@@ -735,6 +735,7 @@ class GLFilterChips extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     this.padding = const EdgeInsets.symmetric(horizontal: 20),
+    this.dense = false,
     super.key,
   });
 
@@ -742,6 +743,10 @@ class GLFilterChips extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final EdgeInsetsGeometry padding;
+
+  /// true: padding 12 dan label abu-abu untuk chip tidak aktif (layar Admin
+  /// M21, M34).
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -772,13 +777,85 @@ class GLFilterChips extends StatelessWidget {
         customBorder: const StadiumBorder(),
         onTap: () => onSelected(i),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          padding: EdgeInsets.symmetric(horizontal: dense ? 12 : 14, vertical: 7),
           child: Text(
             labels[i],
             style: _poppins(12, selected ? FontWeight.w600 : FontWeight.w500,
-                color: selected ? Colors.white : GreenLoopColors.textInk, height: 1.3),
+                color: selected
+                    ? Colors.white
+                    : dense
+                        ? GreenLoopColors.textMuted
+                        : GreenLoopColors.textInk,
+                height: 1.3),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Segmented control hijau muda dengan segmen aktif putih ("Aktif ·
+/// Diarsipkan" di M35, jenis voucher di M36).
+class GLSegmentedControl extends StatelessWidget {
+  const GLSegmentedControl({
+    required this.labels,
+    required this.selectedIndex,
+    required this.onSelected,
+    super.key,
+  });
+
+  final List<String> labels;
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: GreenLoopColors.green100,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < labels.length; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onSelected(i),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  alignment: Alignment.center,
+                  decoration: i == selectedIndex
+                      ? BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x1A123B21),
+                              blurRadius: 18,
+                              offset: Offset(0, 6),
+                            ),
+                          ],
+                        )
+                      : null,
+                  child: Text(
+                    labels[i],
+                    style: _poppins(
+                      12,
+                      i == selectedIndex ? FontWeight.w600 : FontWeight.w500,
+                      color: i == selectedIndex
+                          ? GreenLoopColors.green700
+                          : GreenLoopColors.textMuted,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

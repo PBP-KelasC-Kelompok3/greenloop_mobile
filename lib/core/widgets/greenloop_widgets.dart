@@ -48,9 +48,12 @@ class GreenLoopButton extends StatelessWidget {
             children: [
               if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 8)],
               // Figma: teks tombol 15 / SemiBold
-              Text(
-                label,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
               ),
             ],
           );
