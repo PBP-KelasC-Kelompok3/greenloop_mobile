@@ -4,6 +4,7 @@ import 'package:greenloop_mobile/features/auth/data/auth_models.dart';
 import 'package:greenloop_mobile/features/consumer/presentation/consumer_profile_page.dart';
 import 'package:greenloop_mobile/features/consumer/presentation/order_tracking_page.dart';
 import 'package:greenloop_mobile/features/home/presentation/role_navigation_page.dart';
+import 'package:greenloop_mobile/features/mitra/presentation/mitra_shop_page.dart';
 import 'package:greenloop_mobile/shared/theme/greenloop_theme.dart';
 
 void _phoneSize(WidgetTester tester) {
@@ -58,6 +59,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ConsumerProfilePage), findsNothing);
-    expect(find.text('Modul E-Commerce'), findsOneWidget);
+    expect(find.byType(MitraShopPage), findsOneWidget);
   });
 }

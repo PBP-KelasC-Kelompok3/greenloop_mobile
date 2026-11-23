@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:greenloop_mobile/app/app.dart';
 import 'package:greenloop_mobile/core/network/api_client.dart';
+import 'package:greenloop_mobile/core/widgets/gl_components.dart';
 import 'package:greenloop_mobile/features/auth/presentation/auth_pages.dart';
 import 'package:greenloop_mobile/features/auth/services/auth_service.dart';
 import 'package:greenloop_mobile/features/home/presentation/home_pages.dart';
+import 'package:greenloop_mobile/features/mitra/presentation/mitra_edit_profile_page.dart';
 import 'package:greenloop_mobile/features/profile/presentation/profile_pages.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -98,19 +100,26 @@ void main() {
 
     final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-    await tester.pumpWidget(MaterialApp(
-      home: LoginPage(authService: authService),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(home: LoginPage(authService: authService)),
+    );
 
     await tester.enterText(find.byKey(const Key('login-email')), 'budi');
-    await tester.enterText(find.byKey(const Key('login-password')), 'secret123');
+    await tester.enterText(
+      find.byKey(const Key('login-password')),
+      'secret123',
+    );
     await tester.ensureVisible(find.text('Masuk'));
     await tester.tap(find.text('Masuk'));
     await tester.pumpAndSettle();
 
     expect(find.byType(LoginPage), findsNothing);
     expect(find.byType(RoleNavigationPage), findsOneWidget);
-    expect(find.text('Ruang Courier di GreenLoop'), findsOneWidget);
+    expect(find.text('Halo, Budi 👋'), findsOneWidget);
+    expect(find.text('Status Tugas'), findsOneWidget);
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Rute'), findsOneWidget);
+    expect(find.text('Rekap'), findsOneWidget);
   });
 
   testWidgets('registration fields follow selected role', (tester) async {
@@ -191,9 +200,9 @@ void main() {
 
     final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-    await tester.pumpWidget(MaterialApp(
-      home: RegisterPage(authService: authService),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(home: RegisterPage(authService: authService)),
+    );
 
     await tester.enterText(
       find.byKey(const Key('register-username')),
@@ -242,10 +251,15 @@ void main() {
       const MaterialApp(home: RoleNavigationPage(role: UserRole.mitra)),
     );
 
-    expect(find.text('Jemput'), findsOneWidget);
-    expect(find.text('Belanja'), findsOneWidget);
+    // Label tab dicari di dalam tab bar; Beranda Mitra juga punya shortcut
+    // "Belanja".
+    Finder tab(String label) =>
+        find.descendant(of: find.byType(GLTabBar), matching: find.text(label));
 
-    await tester.tap(find.text('Profil'));
+    expect(tab('Jemput'), findsOneWidget);
+    expect(tab('Belanja'), findsOneWidget);
+
+    await tester.tap(tab('Profil'));
     await tester.pumpAndSettle();
 
     expect(
@@ -256,16 +270,9 @@ void main() {
     await tester.tap(find.byTooltip('Edit profil'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(EditProfilePage), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.text('Informasi Mitra'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-
-    expect(find.text('Informasi Mitra'), findsOneWidget);
-    expect(find.text('Nama Usaha'), findsOneWidget);
+    // Profil Mitra (halaman Filza) membuka form edit khusus Mitra.
+    expect(find.byType(MitraEditProfilePage), findsOneWidget);
+    expect(find.text('Nama usaha'), findsWidgets);
   });
 
   testWidgets('logout in ProfilePage logs out and returns to WelcomePage', (
@@ -311,9 +318,11 @@ void main() {
     await authService.login(username: 'logout_user', password: 'password');
     expect(authService.isAuthenticated, isTrue);
 
-    await tester.pumpWidget(MaterialApp(
-      home: ProfilePage(role: UserRole.consumer, authService: authService),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ProfilePage(role: UserRole.consumer, authService: authService),
+      ),
+    );
 
     expect(find.text('logout_user'), findsOneWidget);
 
@@ -356,14 +365,15 @@ void main() {
 
       final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-      await tester.pumpWidget(MaterialApp(
-        home: WelcomePage(authService: authService),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(home: WelcomePage(authService: authService)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(WelcomePage), findsNothing);
       expect(find.byType(RoleNavigationPage), findsOneWidget);
-      expect(find.text('Ruang Courier di GreenLoop'), findsOneWidget);
+      expect(find.text('Halo, Budi 👋'), findsOneWidget);
+      expect(find.text('Status Tugas'), findsOneWidget);
     },
   );
 
@@ -385,9 +395,9 @@ void main() {
 
       final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-      await tester.pumpWidget(MaterialApp(
-        home: WelcomePage(authService: authService),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(home: WelcomePage(authService: authService)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(WelcomePage), findsOneWidget);
@@ -404,9 +414,9 @@ void main() {
 
       final authService = AuthService(apiClient: ApiClient(client: mockClient));
 
-      await tester.pumpWidget(MaterialApp(
-        home: WelcomePage(authService: authService),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(home: WelcomePage(authService: authService)),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(WelcomePage), findsOneWidget);

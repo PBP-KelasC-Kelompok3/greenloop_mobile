@@ -8,9 +8,18 @@ import '../../admin/presentation/admin_courier_verification_page.dart';
 import '../../admin/presentation/admin_orders_page.dart';
 import '../../admin/presentation/admin_products_page.dart';
 import '../../auth/services/auth_service.dart';
+import '../../admin/presentation/admin_dashboard_page.dart';
 import '../../consumer/presentation/consumer_profile_page.dart';
+import '../../courier/presentation/courier_page.dart';
+import '../../mitra/data/mitra_shop_service.dart';
+import '../../mitra/presentation/mitra_cart_page.dart';
+import '../../mitra/presentation/mitra_orders_page.dart';
+import '../../mitra/presentation/mitra_pickup_history_page.dart';
+import '../../mitra/presentation/mitra_pickup_page.dart';
+import '../../mitra/presentation/mitra_shop_page.dart';
 import '../../profile/presentation/profile_pages.dart';
 import '../../waste_reward/presentation/waste_reward_page.dart';
+import '../../../dashboard_mitra_page.dart';
 
 /// Tab bar mana yang dipakai tiap role (komponen "Mobile / Tab Bar ..." di
 /// Figma).
@@ -40,10 +49,15 @@ class RoleNavigationPage extends StatefulWidget {
 
 class _RoleNavigationPageState extends State<RoleNavigationPage> {
   late int _selectedIndex = widget.initialIndex;
+  bool _showMitraHistory = false;
 
   GLTabRole get _tabRole => tabRoleFor(widget.role);
 
   List<GLTabItem> get _tabs => glTabsByRole[_tabRole]!;
+
+  AuthService get _auth => widget.authService ?? defaultAuthService;
+
+  late final MitraShopService _shopService = MitraShopService(_auth);
 
   void _selectTab(int index) => setState(() => _selectedIndex = index);
 
@@ -51,33 +65,84 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
       _selectTab(_tabs.indexWhere((tab) => tab.label == label));
 
   Widget _selectedPage() {
+    // Riwayat penjemputan Mitra (halaman Filza) tampil penuh tanpa tab bar.
+    if (_tabRole == GLTabRole.mitra && _showMitraHistory) {
+      return MitraPickupHistoryPage(
+        authService: widget.authService,
+        onBack: () => setState(() {
+          _showMitraHistory = false;
+          if (_tabs[_selectedIndex].label == 'Jemput') {
+            _selectedIndex = 0;
+          }
+        }),
+        onCreatePickup: () => setState(() {
+          _showMitraHistory = false;
+          _selectedIndex = _tabs.indexWhere((t) => t.label == 'Jemput');
+        }),
+      );
+    }
+
     final label = _tabs[_selectedIndex].label;
 
-    switch (label) {
-      case 'Profil' when _tabRole == GLTabRole.konsumen:
+    switch ((_tabRole, label)) {
+      // --- Mitra (halaman Filza + Waste & Reward) ---------------------------
+      case (GLTabRole.mitra, 'Beranda'):
+        return DashboardMitraPage(
+          authService: widget.authService,
+          onCreatePickup: () => _selectTabLabel('Jemput'),
+          onShowReward: () => _selectTabLabel('Reward'),
+          onShowShop: () => _selectTabLabel('Belanja'),
+          onShowHistory: () => setState(() => _showMitraHistory = true),
+        );
+      case (GLTabRole.mitra, 'Jemput'):
+        return MitraPickupPage(
+          authService: widget.authService,
+          onBack: () => _selectTabLabel('Beranda'),
+          onSubmitted: (_) => setState(() => _showMitraHistory = true),
+        );
+      case (GLTabRole.mitra, 'Reward'):
+        return WasteRewardPage(
+          onOpenCatalog: () => _selectTabLabel('Belanja'),
+        );
+      case (GLTabRole.mitra, 'Belanja'):
+        return MitraShopPage(authService: widget.authService);
+
+      // --- Konsumen (katalog, keranjang, pesanan memakai halaman Filza) -----
+      case (GLTabRole.konsumen, 'Katalog'):
+        return MitraShopPage(authService: widget.authService);
+      case (GLTabRole.konsumen, 'Keranjang'):
+        return MitraCartPage(service: _shopService);
+      case (GLTabRole.konsumen, 'Pesanan'):
+        return MitraOrdersPage(service: _shopService);
+      case (GLTabRole.konsumen, 'Profil'):
         return ConsumerProfilePage(
           authService: widget.authService,
           onOpenOrders: () => _selectTabLabel('Pesanan'),
           onOpenCart: () => _selectTabLabel('Keranjang'),
           onOpenCatalog: () => _selectTabLabel('Katalog'),
         );
-      case 'Profil':
-        return ProfilePage(role: widget.role, authService: widget.authService);
-      case 'Beranda':
-      case 'Dashboard':
-        return AuthenticatedHomePage(role: widget.role);
-      case 'Reward':
-        return WasteRewardPage(
-          onOpenCatalog: () => _selectTabLabel('Belanja'),
-        );
-      case 'Kurir' when _tabRole == GLTabRole.admin:
+
+      // --- Kurir (halaman Rafata) -------------------------------------------
+      case (GLTabRole.kurir, 'Dashboard' || 'Rute' || 'Rekap'):
+        return const CourierDashboardPage();
+
+      // --- Admin (dashboard verifikasi Filza + layar Figma baru) ------------
+      case (GLTabRole.admin, 'Beranda' || 'Pikap'):
+        return AdminDashboardPage(authService: widget.authService);
+      case (GLTabRole.admin, 'Kurir'):
         return AdminCourierVerificationPage(
           onBack: () => _selectTabLabel('Beranda'),
         );
-      case 'Produk' when _tabRole == GLTabRole.admin:
+      case (GLTabRole.admin, 'Produk'):
         return const AdminProductsPage();
-      case 'Pesanan' when _tabRole == GLTabRole.admin:
+      case (GLTabRole.admin, 'Pesanan'):
         return const AdminOrdersPage();
+
+      // --- Umum -------------------------------------------------------------
+      case (_, 'Profil'):
+        return ProfilePage(role: widget.role, authService: widget.authService);
+      case (_, 'Beranda' || 'Dashboard'):
+        return AuthenticatedHomePage(role: widget.role);
       default:
         return ModulePlaceholderPage(
           title: label,
@@ -97,6 +162,13 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Ajukan Penjemputan dan Riwayat (halaman Filza) punya tombol kembali
+    // sendiri dan tampil tanpa tab bar, seperti di main.
+    if (_tabRole == GLTabRole.mitra &&
+        (_showMitraHistory || _tabs[_selectedIndex].label == 'Jemput')) {
+      return _selectedPage();
+    }
+
     return Scaffold(
       backgroundColor: GreenLoopColors.background,
       body: SafeArea(bottom: false, child: _selectedPage()),

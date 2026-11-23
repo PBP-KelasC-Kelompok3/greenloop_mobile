@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:greenloop_mobile/core/widgets/gl_components.dart';
 import 'package:greenloop_mobile/features/auth/data/auth_models.dart';
+import 'package:greenloop_mobile/features/courier/presentation/courier_page.dart';
 import 'package:greenloop_mobile/features/home/presentation/demo_login.dart';
 import 'package:greenloop_mobile/features/home/presentation/role_navigation_page.dart';
 import 'package:greenloop_mobile/shared/dummy/dummy_data.dart';
@@ -27,17 +28,19 @@ void main() {
     }
   });
 
-  testWidgets('tab yang belum dibangun menampilkan placeholder modul', (tester) async {
+  testWidgets('tab Kurir membuka dashboard kurir dari main', (tester) async {
     await tester.pumpWidget(MaterialApp(
       theme: GreenLoopTheme.light,
       home: const RoleNavigationPage(role: UserRole.courier),
     ));
 
+    expect(find.byType(CourierDashboardPage), findsOneWidget);
+
     await tester.tap(find.text('Rute'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(ModulePlaceholderPage), findsOneWidget);
-    expect(find.text('Modul Courier & Route'), findsOneWidget);
+    expect(find.byType(CourierDashboardPage), findsOneWidget);
+    expect(find.byType(ModulePlaceholderPage), findsNothing);
   });
 
   testWidgets('masuk demo membuka shell role yang dipilih', (tester) async {

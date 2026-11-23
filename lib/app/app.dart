@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../features/auth/presentation/auth_pages.dart';
 import '../features/auth/services/auth_service.dart';
 import '../shared/theme/greenloop_theme.dart';
+import '../shared/widgets/mobile_viewport_frame.dart';
 
 class GreenLoopApp extends StatelessWidget {
   const GreenLoopApp({this.authService, super.key});
@@ -16,6 +17,9 @@ class GreenLoopApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: GreenLoopTheme.light,
       home: WelcomePage(authService: authService),
+      builder: (context, child) => MobileViewportFrame(
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 }

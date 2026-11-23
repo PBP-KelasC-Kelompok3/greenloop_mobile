@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
@@ -6,6 +7,9 @@ import '../../../shared/theme/greenloop_theme.dart';
 import '../../auth/data/auth_models.dart';
 import '../../auth/presentation/auth_pages.dart' show WelcomePage;
 import '../../auth/services/auth_service.dart';
+import '../../mitra/presentation/mitra_edit_profile_page.dart';
+import '../../mitra/presentation/mitra_faq_page.dart';
+import '../../mitra/presentation/mitra_location_picker.dart';
 
 export '../../auth/data/auth_models.dart' show UserRole, UserRoleData;
 
@@ -28,17 +32,28 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveAuth = authService ?? defaultAuthService;
-    final currentUser = effectiveAuth.currentUser;
+    return ValueListenableBuilder<UserProfile?>(
+      valueListenable: effectiveAuth.currentUserNotifier,
+      builder: (context, currentUser, _) {
     final userAccount = currentUser?.user;
     final isMitra = role == UserRole.mitra;
 
-    final displayName = userAccount != null && userAccount.displayName.isNotEmpty
-        ? userAccount.displayName
-        : (isMitra ? 'Profil Mitra' : 'Profil ${role.label}');
+    final businessName = currentUser?.mitraProfile?.businessName?.trim();
+    final displayName = isMitra && businessName?.isNotEmpty == true
+        ? businessName!
+        : (userAccount != null && userAccount.displayName.isNotEmpty
+              ? userAccount.displayName
+              : (isMitra ? 'Profil Mitra' : 'Profil ${role.label}'));
 
     final displayEmail = userAccount != null && userAccount.email.isNotEmpty
         ? userAccount.email
         : 'Data akun akan tampil setelah API tersambung';
+    final profileSubtitle = isMitra
+        ? [
+            currentUser?.mitraProfile?.businessType,
+            currentUser?.mitraProfile?.picName,
+          ].where((part) => part?.trim().isNotEmpty == true).join(' · ')
+        : displayEmail;
 
     final avatarLetter = userAccount != null && userAccount.displayName.isNotEmpty
         ? userAccount.displayName.substring(0, 1).toUpperCase()
@@ -116,20 +131,18 @@ class ProfilePage extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => EditProfilePage(
-                    role: role,
-                    authService: effectiveAuth,
-                  ),
+                  builder: (_) => isMitra
+                      ? MitraEditProfilePage(authService: effectiveAuth)
+                      : EditProfilePage(
+                          role: role,
+                          authService: effectiveAuth,
+                        ),
                 ),
               );
             },
             icon: const Icon(Icons.edit_outlined),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.white,
-              side: const BorderSide(color: GreenLoopColors.border),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(11),
-              ),
+              foregroundColor: GreenLoopColors.circleGreen,
             ),
           ),
           const SizedBox(width: 12),
@@ -170,7 +183,7 @@ class ProfilePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  displayEmail,
+                  profileSubtitle.isEmpty ? displayEmail : profileSubtitle,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: GreenLoopColors.textMuted,
@@ -202,9 +215,16 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(height: 12),
                   const Row(
                     children: [
-                      _ProfileMetric(value: '—', label: 'pickup'),
-                      _ProfileMetric(value: '—', label: 'limbah'),
-                      _ProfileMetric(value: '—', label: 'poin'),
+                      Expanded(
+                        child: Text(
+                          'Profil usaha mitra',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: GreenLoopColors.textMuted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -215,52 +235,12 @@ class ProfilePage extends StatelessWidget {
           // PICKUP ADDRESS (MITRA)
           if (isMitra) ...[
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(13),
-              decoration: BoxDecoration(
-                color: GreenLoopColors.mint,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: GreenLoopColors.border),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 18,
-                    backgroundColor: GreenLoopColors.leaf,
-                    child: Icon(
-                      Icons.location_on_outlined,
-                      size: 20,
-                      color: GreenLoopColors.forest2,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          currentUser?.mitraProfile?.businessName ??
-                              'Alamat penjemputan',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          currentUser?.mitraProfile?.courierNotes ??
-                              currentUser?.mitraProfile?.phoneNumber ??
-                              'Alamat usaha akan tampil setelah profil dimuat.',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            height: 1.4,
-                            color: GreenLoopColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+            _MitraAddressCard(
+              profile: currentUser?.mitraProfile,
+              onEdit: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => MitraEditProfilePage(authService: effectiveAuth),
+                ),
               ),
             ),
           ],
@@ -318,10 +298,16 @@ class ProfilePage extends StatelessWidget {
                           if (isMitra && menu[i].title == 'Data Usaha') {
                             Navigator.of(context).push(
                               MaterialPageRoute<void>(
-                                builder: (_) => EditProfilePage(
-                                  role: role,
+                                builder: (_) => MitraEditProfilePage(
                                   authService: effectiveAuth,
                                 ),
+                              ),
+                            );
+                          } else if (isMitra &&
+                              menu[i].title == 'Bantuan & FAQ') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const MitraFaqPage(),
                               ),
                             );
                           } else {
@@ -406,6 +392,77 @@ class ProfilePage extends StatelessWidget {
           ),
         ],
       ),
+      );
+      },
+    );
+  }
+}
+
+String _mitraAddress(MitraProfileData? profile) {
+  if (profile == null) return 'Alamat usaha belum tersedia.';
+  final locality = [
+    profile.kelurahan,
+    profile.kecamatan,
+    profile.kota,
+    profile.provinsi,
+  ].where((part) => part?.trim().isNotEmpty == true).join(', ');
+  final address = [profile.addressDetail, locality]
+      .where((part) => part?.trim().isNotEmpty == true)
+      .join(', ');
+  return address.isEmpty ? 'Alamat usaha belum tersedia.' : address;
+}
+
+class _MitraAddressCard extends StatelessWidget {
+  const _MitraAddressCard({required this.profile, required this.onEdit});
+
+  final MitraProfileData? profile;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPoint = profile?.latitude != null && profile?.longitude != null;
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: GreenLoopColors.border),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const CircleAvatar(
+            radius: 18,
+            backgroundColor: GreenLoopColors.mint,
+            child: Icon(Icons.location_on_outlined, size: 20, color: GreenLoopColors.forest2),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Alamat Penjemputan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 3),
+            Text(_mitraAddress(profile), style: const TextStyle(fontSize: 12, height: 1.4, color: GreenLoopColors.textMuted)),
+          ])),
+          Icon(profile?.locationLocked == true ? Icons.lock_outline : Icons.lock_open, size: 17, color: GreenLoopColors.circleGreen),
+        ]),
+        const SizedBox(height: 10),
+        if (hasPoint)
+          MitraLocationPicker(
+            initialPoint: LatLng(profile!.latitude!, profile!.longitude!),
+            editable: false,
+            onPointChanged: (_) {},
+            onLocationValidityChanged: (_) {},
+            onLocationNeedsResolution: () {},
+          )
+        else
+          Container(
+            height: 90,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: GreenLoopColors.mint, borderRadius: BorderRadius.circular(12)),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Titik peta belum ditentukan', style: TextStyle(fontSize: 12, color: GreenLoopColors.textMuted)),
+              TextButton.icon(onPressed: onEdit, icon: const Icon(Icons.map_outlined, size: 17), label: const Text('Atur lokasi usaha')),
+            ]),
+          ),
+      ]),
     );
   }
 }
@@ -477,6 +534,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       'phone_number',
       'operational_hours',
       'courier_notes',
+      'provinsi',
+      'kota',
+      'kecamatan',
+      'kelurahan',
+      'address_detail',
       'plate_number',
       'vehicle_type',
     ])
@@ -503,6 +565,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         _fields['phone_number']!.text = m.phoneNumber ?? '';
         _fields['operational_hours']!.text = m.operationalHours ?? '';
         _fields['courier_notes']!.text = m.courierNotes ?? '';
+        _fields['provinsi']!.text = m.provinsi ?? '';
+        _fields['kota']!.text = m.kota ?? '';
+        _fields['kecamatan']!.text = m.kecamatan ?? '';
+        _fields['kelurahan']!.text = m.kelurahan ?? '';
+        _fields['address_detail']!.text = m.addressDetail ?? '';
       }
 
       if (current.courierProfile != null) {
@@ -543,6 +610,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             'phone_number',
             'operational_hours',
             'courier_notes',
+            'provinsi',
+            'kota',
+            'kecamatan',
+            'kelurahan',
+            'address_detail',
           ]) {
             payload[key] = _fields[key]!.text.trim();
           }
@@ -610,6 +682,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ('pic_name', 'Nama Penanggung Jawab'),
         ('phone_number', 'No. WhatsApp'),
         ('operational_hours', 'Jam Operasional'),
+        ('provinsi', 'Provinsi'),
+        ('kota', 'Kota / Kabupaten'),
+        ('kecamatan', 'Kecamatan'),
+        ('kelurahan', 'Kelurahan'),
+        ('address_detail', 'Alamat Lengkap'),
         ('courier_notes', 'Catatan untuk Kurir'),
       ],
       UserRole.courier => const [

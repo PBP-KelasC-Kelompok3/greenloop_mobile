@@ -76,6 +76,10 @@ class AuthService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       final authResponse = AuthResponse.fromJson(decoded);
+      // Django rotates the CSRF secret when a session is authenticated.
+      // Refresh it before the next PATCH/POST so profile updates do not send
+      // the pre-login token.
+      await _apiClient.fetchCsrfToken(force: true);
       _setCurrentUser(authResponse.profile);
       _sessionCheckFuture = Future.value(_currentUser);
       return _currentUser!;
@@ -97,6 +101,8 @@ class AuthService {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final decoded = jsonDecode(response.body) as Map<String, dynamic>;
       final authResponse = AuthResponse.fromJson(decoded);
+      // Registration also logs the user in and rotates Django's CSRF secret.
+      await _apiClient.fetchCsrfToken(force: true);
       _setCurrentUser(authResponse.profile);
       _sessionCheckFuture = Future.value(_currentUser);
       return _currentUser!;

@@ -85,7 +85,8 @@ class _WelcomePageState extends State<WelcomePage> {
   Future<void> _restoreSession() async {
     final profile = await _effectiveAuth.checkSession();
     if (profile != null && mounted) {
-      Navigator.of(context).pushReplacement(
+      final navigator = Navigator.of(context);
+      navigator.pushReplacement(
         MaterialPageRoute<void>(
           builder: (_) => RoleNavigationPage(
             role: profile.role,
@@ -503,7 +504,8 @@ class _LoginPageState extends State<LoginPage> {
         if (!mounted) return;
 
         // Role diambil dari backend untuk menentukan dashboard tujuan.
-        Navigator.of(context).pushAndRemoveUntil(
+        final navigator = Navigator.of(context);
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute<void>(
             builder: (_) => RoleNavigationPage(
               role: profile.role,
@@ -937,7 +939,8 @@ class _RegisterPageState extends State<RegisterPage> {
               )
             : RoleNavigationPage(role: profile.role, authService: _effectiveAuth);
 
-        Navigator.of(context).pushAndRemoveUntil(
+        final navigator = Navigator.of(context);
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute<void>(builder: (_) => destination),
           (route) => false,
         );
@@ -1073,9 +1076,11 @@ class _RegisterPageState extends State<RegisterPage> {
             children: [
               Icon(icon, size: 16, color: GreenLoopColors.green900),
               const SizedBox(width: 6),
-              Text(title,
-                  style: _text(13, FontWeight.w700,
-                      color: GreenLoopColors.green900, height: 1.3)),
+              Flexible(
+                child: Text(title,
+                    style: _text(13, FontWeight.w700,
+                        color: GreenLoopColors.green900, height: 1.3)),
+              ),
             ],
           ),
           for (final child in children) ...[const SizedBox(height: 10), child],

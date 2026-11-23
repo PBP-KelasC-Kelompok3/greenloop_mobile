@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.10.0
+  sdk: ^3.13.7
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -35,6 +35,11 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   http: ^1.6.0
+  image_picker: ^1.1.2
+  geolocator: ^14.1.2
+  url_launcher: ^6.3.3
+  flutter_map: 8.3.2
+  latlong2: 0.10.1
   lucide_icons_flutter: 4.0.1
 
 
@@ -75,6 +80,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/depok_boundary.json
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
