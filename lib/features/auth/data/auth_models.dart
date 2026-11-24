@@ -89,6 +89,8 @@ class MitraProfileData {
     this.phoneNumber,
     this.operationalHours,
     this.courierNotes,
+    this.kecamatan,
+    this.kota,
   });
 
   final String? businessName;
@@ -97,6 +99,8 @@ class MitraProfileData {
   final String? phoneNumber;
   final String? operationalHours;
   final String? courierNotes;
+  final String? kecamatan;
+  final String? kota;
 
   factory MitraProfileData.fromJson(Map<String, dynamic> json) =>
       MitraProfileData(
@@ -106,6 +110,8 @@ class MitraProfileData {
         phoneNumber: json['phone_number'] as String?,
         operationalHours: json['operational_hours'] as String?,
         courierNotes: json['courier_notes'] as String?,
+        kecamatan: json['kecamatan'] as String?,
+        kota: json['kota'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -115,6 +121,8 @@ class MitraProfileData {
         'phone_number': ?phoneNumber,
         'operational_hours': ?operationalHours,
         'courier_notes': ?courierNotes,
+        'kecamatan': ?kecamatan,
+        'kota': ?kota,
       };
 
   MitraProfileData copyWith({
@@ -124,6 +132,8 @@ class MitraProfileData {
     String? phoneNumber,
     String? operationalHours,
     String? courierNotes,
+    String? kecamatan,
+    String? kota,
   }) =>
       MitraProfileData(
         businessName: businessName ?? this.businessName,
@@ -132,6 +142,8 @@ class MitraProfileData {
         phoneNumber: phoneNumber ?? this.phoneNumber,
         operationalHours: operationalHours ?? this.operationalHours,
         courierNotes: courierNotes ?? this.courierNotes,
+        kecamatan: kecamatan ?? this.kecamatan,
+        kota: kota ?? this.kota,
       );
 }
 

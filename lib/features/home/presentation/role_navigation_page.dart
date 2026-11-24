@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/greenloop_widgets.dart';
 import '../../../shared/theme/greenloop_theme.dart';
 import '../../auth/services/auth_service.dart';
+import '../../mitra/presentation/mitra_pickup_history_page.dart';
+import '../../mitra/presentation/mitra_shop_page.dart';
 import '../../profile/presentation/profile_pages.dart';
+import '../../../dashboard_mitra_page.dart';
+import '../../consumer/presentation/consumer_shop_pages.dart';
 
 /// Shell for authenticated users with role-specific bottom navigation tabs.
 class RoleNavigationPage extends StatefulWidget {
@@ -22,10 +26,18 @@ class RoleNavigationPage extends StatefulWidget {
 
 class _RoleNavigationPageState extends State<RoleNavigationPage> {
   int _selectedIndex = 0;
+  bool _showMitraHistory = false;
 
   List<_NavTab> get _tabs {
     switch (widget.role) {
       case UserRole.consumer:
+        return const [
+          _NavTab('Beranda', Icons.home_outlined, Icons.home),
+          _NavTab('Katalog', Icons.inventory_2_outlined, Icons.inventory_2),
+          _NavTab('Keranjang', Icons.shopping_cart_outlined, Icons.shopping_cart),
+          _NavTab('Pesanan', Icons.receipt_long_outlined, Icons.receipt_long),
+          _NavTab('Profil', Icons.person_outline, Icons.person),
+        ];
       case UserRole.mitra:
         return const [
           _NavTab('Beranda', Icons.home_outlined, Icons.home),
@@ -41,12 +53,9 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
 
       case UserRole.courier:
         return const [
-          _NavTab('Beranda', Icons.home_outlined, Icons.home),
-          _NavTab(
-            'Jemput',
-            Icons.local_shipping_outlined,
-            Icons.local_shipping,
-          ),
+          _NavTab('Dashboard', Icons.home_outlined, Icons.home),
+          _NavTab('Rute', Icons.map_outlined, Icons.map),
+          _NavTab('Rekap', Icons.scale_outlined, Icons.scale),
           _NavTab('Profil', Icons.person_outline, Icons.person),
         ];
 
@@ -60,24 +69,72 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
   }
 
   Widget _selectedPage() {
-    final selectedLabel = _tabs[_selectedIndex].label;
-
-    if (selectedLabel == 'Profil') {
-      return ProfilePage(
-        role: widget.role,
+    if (widget.role == UserRole.mitra && _showMitraHistory) {
+      return MitraPickupHistoryPage(
         authService: widget.authService,
+        onBack: () => setState(() {
+          _showMitraHistory = false;
+          if (_selectedIndex == 1) _selectedIndex = 0;
+        }),
+        onCreatePickup: () => setState(() {
+          _showMitraHistory = false;
+          _selectedIndex = 1;
+        }),
       );
     }
 
-    if (selectedLabel == 'Beranda') {
+    final selectedLabel = _tabs[_selectedIndex].label;
+    if (selectedLabel == 'Profil') {
+      return ProfilePage(role: widget.role, authService: widget.authService);
+    }
+    if (widget.role == UserRole.courier &&
+        {'Dashboard', 'Rute', 'Rekap'}.contains(selectedLabel)) {
+      return _ModulePlaceholder(title: selectedLabel);
+    }
+    if (selectedLabel == 'Beranda' || selectedLabel == 'Dashboard') {
+      if (widget.role == UserRole.mitra) {
+        return DashboardMitraPage(
+          authService: widget.authService,
+          onCreatePickup: () => setState(() => _selectedIndex = 1),
+          onShowReward: () => setState(() => _selectedIndex = 2),
+          onShowShop: () => setState(() => _selectedIndex = 3),
+          onShowHistory: () => setState(() {
+            _showMitraHistory = true;
+            _selectedIndex = 1;
+          }),
+        );
+      }
       return AuthenticatedHomePage(role: widget.role);
     }
-
+    if (widget.role == UserRole.mitra && selectedLabel == 'Reward') {
+      return const _ModulePlaceholder(title: 'Reward');
+    }
+    if (widget.role == UserRole.mitra && selectedLabel == 'Belanja') {
+      return MitraShopPage(authService: widget.authService);
+    }
+    if (widget.role == UserRole.mitra && selectedLabel == 'Jemput') {
+      return const _ModulePlaceholder(title: 'Ajukan Penjemputan');
+    }
+    if (widget.role == UserRole.consumer && selectedLabel == 'Katalog') {
+      return ConsumerCatalogPage(authService: widget.authService);
+    }
+    if (widget.role == UserRole.consumer && selectedLabel == 'Keranjang') {
+      return ConsumerCartPage(authService: widget.authService);
+    }
+    if (widget.role == UserRole.consumer && selectedLabel == 'Pesanan') {
+      return ConsumerOrdersPage(authService: widget.authService);
+    }
     return _ModulePlaceholder(title: selectedLabel);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.role == UserRole.mitra &&
+        _selectedIndex == 1 &&
+        !_showMitraHistory) {
+      return _selectedPage();
+    }
+
     return Scaffold(
       backgroundColor: GreenLoopColors.surface,
       body: SafeArea(bottom: false, child: _selectedPage()),
@@ -100,6 +157,7 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
                       onTap: () {
                         setState(() {
                           _selectedIndex = index;
+                          _showMitraHistory = false;
                         });
                       },
                     ),

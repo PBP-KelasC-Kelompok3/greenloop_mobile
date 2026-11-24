@@ -6,6 +6,8 @@ import '../../../shared/theme/greenloop_theme.dart';
 import '../../auth/data/auth_models.dart';
 import '../../auth/presentation/auth_pages.dart' show WelcomePage;
 import '../../auth/services/auth_service.dart';
+import '../../mitra/presentation/mitra_faq_page.dart';
+import '../../consumer/presentation/consumer_shop_pages.dart';
 
 export '../../auth/data/auth_models.dart' show UserRole, UserRoleData;
 
@@ -320,6 +322,33 @@ class ProfilePage extends StatelessWidget {
                               MaterialPageRoute<void>(
                                 builder: (_) => EditProfilePage(
                                   role: role,
+                                  authService: effectiveAuth,
+                                ),
+                              ),
+                            );
+                          } else if (isMitra &&
+                              menu[i].title == 'Bantuan & FAQ') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const MitraFaqPage(),
+                              ),
+                            );
+                          } else if (isMitra &&
+                              menu[i].title == 'Pesanan Saya') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ConsumerOrdersPage(
+                                  authService: effectiveAuth,
+                                  includeSelfPickup: true,
+                                  pageTitle: 'Pesanan Mitra',
+                                ),
+                              ),
+                            );
+                          } else if (role == UserRole.consumer &&
+                              menu[i].title == 'Pesanan Saya') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ConsumerOrdersPage(
                                   authService: effectiveAuth,
                                 ),
                               ),

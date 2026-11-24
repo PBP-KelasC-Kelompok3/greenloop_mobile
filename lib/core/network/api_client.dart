@@ -191,6 +191,73 @@ class ApiClient {
     return response;
   }
 
+  /// Submit regular form fields as Django `request.POST` data with CSRF support.
+  Future<http.Response> postForm(
+    String path, {
+    required Map<String, String> fields,
+    Map<String, String>? headers,
+    bool requireCsrf = true,
+  }) async {
+    final uri = _buildUri(path);
+    var token = requireCsrf ? await fetchCsrfToken() : null;
+
+    Future<http.Response> sendRequest() => _client.post(
+      uri,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-CSRFToken': ?token,
+        ...?headers,
+      },
+      body: fields,
+    );
+
+    var response = await sendRequest();
+    if (requireCsrf && response.statusCode == 403) {
+      token = await fetchCsrfToken(force: true);
+      response = await sendRequest();
+    }
+
+    _extractCsrfFromResponse(response);
+    return response;
+  }
+  /// Send a multipart POST containing one upload and CSRF protection.
+  Future<http.Response> postMultipart(
+    String path, {
+    required Map<String, String> fields,
+    required String fileField,
+    required List<int> fileBytes,
+    required String filename,
+    bool requireCsrf = true,
+  }) async {
+    final uri = _buildUri(path);
+    var token = requireCsrf ? await fetchCsrfToken() : null;
+
+    Future<http.Response> sendRequest() async {
+      final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll({
+          'Accept': 'application/json',
+          if (token != null) 'X-CSRFToken': token!,
+        })
+        ..fields.addAll(fields)
+        ..files.add(http.MultipartFile.fromBytes(
+          fileField,
+          fileBytes,
+          filename: filename,
+        ));
+      final streamedResponse = await _client.send(request);
+      return http.Response.fromStream(streamedResponse);
+    }
+
+    var response = await sendRequest();
+    if (requireCsrf && response.statusCode == 403) {
+      token = await fetchCsrfToken(force: true);
+      response = await sendRequest();
+    }
+    _extractCsrfFromResponse(response);
+    return response;
+  }
+
   /// Perform a PATCH request with CSRF token and JSON headers.
   Future<http.Response> patch(
     String path, {
