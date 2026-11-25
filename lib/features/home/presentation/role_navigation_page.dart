@@ -123,8 +123,18 @@ class _RoleNavigationPageState extends State<RoleNavigationPage> {
         );
 
       // --- Kurir (halaman Rafata) -------------------------------------------
-      case (GLTabRole.kurir, 'Dashboard' || 'Rute' || 'Rekap'):
-        return const CourierDashboardPage();
+      case (GLTabRole.kurir, 'Dashboard'):
+        return CourierDashboardPage(authService: widget.authService);
+      case (GLTabRole.kurir, 'Rute'):
+        return CourierDashboardPage(
+          authService: widget.authService,
+          mode: CourierPageMode.route,
+        );
+      case (GLTabRole.kurir, 'Rekap'):
+        return CourierDashboardPage(
+          authService: widget.authService,
+          mode: CourierPageMode.recap,
+        );
 
       // --- Admin (dashboard verifikasi Filza + layar Figma baru) ------------
       case (GLTabRole.admin, 'Beranda' || 'Pikap'):

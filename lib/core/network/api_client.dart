@@ -177,20 +177,6 @@ class ApiClient {
 
   /// Perform a POST request. Automatically retrieves and attaches `X-CSRFToken`
   /// when [requireCsrf] is true, and updates the stored CSRF token if returned.
-  /// POST form biasa (`application/x-www-form-urlencoded`) dengan CSRF, untuk
-  /// view Django yang membaca `request.POST` (dipakai checkout katalog).
-  Future<http.Response> postForm(
-    String path, {
-    Map<String, String> fields = const {},
-  }) =>
-      post(
-        path,
-        body: Uri(queryParameters: fields).query,
-        headers: const {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        },
-      );
-
   Future<http.Response> post(
     String path, {
     Object? body,
