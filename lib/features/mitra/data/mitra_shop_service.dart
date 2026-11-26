@@ -287,6 +287,27 @@ class MitraShopService {
         .toList(growable: false);
   }
 
+  /// Returns every courier service available for a destination.
+  /// Consumer checkout uses this method; Mitra checkout keeps its JNE/J&T
+  /// restriction in [shippingOptions].
+  Future<List<ShopShippingOption>> allShippingOptions(
+    String destinationId,
+  ) async {
+    final data = _decode(
+      await _api.post(
+        '/katalog/api/shipping/calculate/',
+        body: {'destination_id': destinationId},
+      ),
+    );
+    return (data['options'] as List? ?? const [])
+        .whereType<Map>()
+        .map(
+          (item) =>
+              ShopShippingOption.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .toList(growable: false);
+  }
+
   Future<ShopCheckoutResult> checkout({
     required String recipient,
     required String phone,
